@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+	"target": "es5",
+	"module": "commonjs",
+	"sourceMap": true,
+	"outDir": "dist",
+	"lib": [
+	  "dom",
+	  "es2019"
+	],
+	"noImplicitAny": true,
+	"strict": true,
+	"experimentalDecorators": true,
+	"downlevelIteration": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "exclude": [
+	"node_modules",
+	"dist"
+  ]
+}
