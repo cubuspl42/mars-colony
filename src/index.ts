@@ -1,5 +1,6 @@
 import { createFullscreenCanvas } from "./fullscreen_canvas";
 import * as tm from 'transformation-matrix';
+import { MutableCell } from "./frp/Cell";
 
 const x0 = 0;
 const y0 = 0;
@@ -20,7 +21,7 @@ function drawHex(
     matrix: tm.Matrix,
     i: number, j: number,
 ): void {
-    const a = 64;
+    const a = 1;
     const h = (a * Math.sqrt(3)) / 2;
 
     const x = x0 + j * (3 * a / 2);
@@ -50,31 +51,49 @@ function drawHex(
     ctx.closePath();
 }
 
-const canvas = createFullscreenCanvas((ctx) => {
-    const canvas = ctx.canvas;
+const selectedHexCoord = new MutableCell<Vec2>({ x: 0, y: 0 });
 
-    ctx.fillStyle = MyColors.ground;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.lineWidth = 2;
-
-    const matrix: tm.Matrix = tm.compose(
-        tm.translate(canvas.width / 2, canvas.height / 2),
-        tm.scale(1, 3 / 4),
-    );
-
-    ctx.strokeStyle = MyColors.hexBorder;
-
-    const n = 4;
-    for (let i = -n; i <= n; ++i) {
-        for (let j = -n; j <= n; ++j) {
-            drawHex(ctx, matrix, i, j);
-        }
-    }
-
-    ctx.strokeStyle = MyColors.selectedHexBorder;
-
-    drawHex(ctx, matrix, 0, 0);
+document.body.addEventListener('click', (e) => {
+    selectedHexCoord.update((c) => ({ x: c.x + 1, y: c.y }));
 });
+
+function createHexGridCanvas() {
+    const redraw = (ctx: CanvasRenderingContext2D) => {
+        const canvas = ctx.canvas;
+
+        ctx.fillStyle = MyColors.ground;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.lineWidth = 2;
+
+        const a = 64;
+
+        const matrix: tm.Matrix = tm.compose(
+            tm.translate(canvas.width / 2, canvas.height / 2),
+            tm.scale(a, a * (3 / 4)),
+        );
+
+        ctx.strokeStyle = MyColors.hexBorder;
+
+        const n = 4;
+        for (let i = -n; i <= n; ++i) {
+            for (let j = -n; j <= n; ++j) {
+                drawHex(ctx, matrix, i, j);
+            }
+        }
+
+        ctx.strokeStyle = MyColors.selectedHexBorder;
+
+        const c = selectedHexCoord.value;
+        drawHex(ctx, matrix, c.x, c.y);
+    };
+
+    return createFullscreenCanvas(
+        redraw,
+        selectedHexCoord.values().map(() => null),
+    );
+}
+
+const canvas = createHexGridCanvas();
 
 document.body.appendChild(canvas);

@@ -1,5 +1,8 @@
+import { Stream } from "./frp/Stream";
+
 export function createFullscreenCanvas(
     redraw: (context: CanvasRenderingContext2D) => void,
+    sRedraw: Stream<null>,
 ): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d')!;
@@ -14,6 +17,8 @@ export function createFullscreenCanvas(
     resizeCanvas();
 
     window.addEventListener('resize', resizeCanvas);
+
+    sRedraw.listen(() => redraw(context));
 
     return canvas;
 }
