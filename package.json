@@ -4,7 +4,7 @@
   "dependencies": {
     "lazy-get-decorator": "^2.2.0",
     "transformation-matrix": "^2.5.0",
-    "ts-keycode-enum": "^1.0.6"
+    "ts-key-enum": "^3.0.4"
   },
   "devDependencies": {
     "cross-env": "^7.0.2",

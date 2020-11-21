@@ -1,24 +1,25 @@
-import { Vec2 } from "./geometry";
 import * as ge from "./geometry";
+import { Vec2 } from "./geometry";
+import { HexCoord } from "./game";
 
 const h = Math.sqrt(3) / 2;
 
-export function mapHexCoordToWorldPoint(c: Vec2): Vec2 {
-    const x = c.x * (3 / 2);
-    const yDelta = c.x % 2 == 0 ? 0 : h;
-    const y = c.y * (h * 2) + yDelta;
+export function mapHexCoordToWorldPoint(c: HexCoord): Vec2 {
+    const x = c.j * (3 / 2);
+    const yDelta = c.j % 2 == 0 ? 0 : h;
+    const y = c.i * (h * 2) + yDelta;
     return { x, y };
 }
 
-export function mapWorldPointToHexCoord(p: Vec2): Vec2 {
+export function mapWorldPointToHexCoord(p: Vec2): HexCoord {
     // Search for the reference hex, using simple algebra
-    const hx0 = Math.round(p.x * (2 / 3));
-    const yDelta = hx0 % 2 === 0 ? 0 : h;
-    const hy0 = Math.round((p.y - yDelta) / (2 * h));
-    const h0: Vec2 = { x: hx0, y: hy0 };
+    const hj0 = Math.round(p.x * (2 / 3));
+    const yDelta = hj0 % 2 === 0 ? 0 : h;
+    const hi0 = Math.round((p.y - yDelta) / (2 * h));
+    const h0: HexCoord = { i: hi0, j: hj0 };
 
     // The central section of the hex.
-    const b0 = hx0 * (3 / 2) - 0.5;
+    const b0 = hj0 * (3 / 2) - 0.5;
     const b1 = b0 + 1;
 
     if (p.x >= b0 && p.x <= b1) {
@@ -46,12 +47,12 @@ export function mapWorldPointToHexCoord(p: Vec2): Vec2 {
         return h0;
     } else {
         // The point is in the reference hex's neighbour. It's a corner case.
-        const hx = qx < 0 ? hx0 - 1 : hx0 + 1;
+        const hj = qx < 0 ? hj0 - 1 : hj0 + 1;
 
         if (qy < 0) {
-            return { x: hx, y: hy0 + ((hx0 % 2 == 0) ? -1 : 0) };
+            return { i: hi0 + ((hj0 % 2 == 0) ? -1 : 0), j: hj };
         } else {
-            return { x: hx, y: hy0 + ((hx0 % 2 == 0) ? 0 : 1) };
+            return { i: hi0 + ((hj0 % 2 == 0) ? 0 : 1), j: hj };
         }
     }
 }
