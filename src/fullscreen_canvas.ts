@@ -1,24 +1,30 @@
-import { Stream } from "./frp/Stream";
+import { Cell } from "./frp/Cell";
+
+type DrawFn = (context: CanvasRenderingContext2D) => void;
 
 export function createFullscreenCanvas(
-    redraw: (context: CanvasRenderingContext2D) => void,
-    sRedraw: Stream<null>,
+    drawFn: Cell<DrawFn>,
 ): HTMLCanvasElement {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d')!;
+
+    const redraw = () => {
+        const draw = drawFn.value;
+        draw(context);
+    }
 
     const resizeCanvas = () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        redraw(context);
+        redraw();
     }
 
     resizeCanvas();
 
     window.addEventListener('resize', resizeCanvas);
 
-    sRedraw.listen(() => redraw(context));
+    drawFn.listen(redraw);
 
     return canvas;
 }

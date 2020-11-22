@@ -135,9 +135,12 @@ export function createHexGridCanvas(args: {
 }) {
     const { game, selectedHexCoord } = args;
 
+    const redraw = (ctx: CanvasRenderingContext2D) => {
+        drawGame({ ctx, game, selectedHexCoord, });
+    }
+
     const canvas = createFullscreenCanvas(
-        (ctx) => drawGame({ ctx, game, selectedHexCoord, }),
-        selectedHexCoord.values().map(() => null),
+        selectedHexCoord.mapTo(redraw),
     );
 
     canvas.addEventListener('click', (e) => {

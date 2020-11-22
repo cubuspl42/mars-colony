@@ -1,5 +1,4 @@
 import { MutableCell } from "./frp/Cell";
-import { Vec2 } from "./geometry";
 import { createHexGridCanvas } from "./drawing";
 import { Game, HexCoord } from "./game";
 

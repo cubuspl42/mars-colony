@@ -1,5 +1,7 @@
 export interface ReactiveMap<K, V> {
     get(key: K): V | undefined;
+
+    mapValues<V2>(f: (k: K, v: V) => V2): ReactiveMap<K, V2>;
 }
 
 export class MutableReactiveMap<K, V> implements ReactiveMap<K, V> {
@@ -19,5 +21,9 @@ export class MutableReactiveMap<K, V> implements ReactiveMap<K, V> {
     set(key: K, value: V): void {
         const keyString = this._buildKeyString(key);
         this._map.set(keyString, value);
+    }
+
+    mapValues<V2>(f: (k: K, v: V) => V2): ReactiveMap<K, V2> {
+        throw new Error();
     }
 }
