@@ -17,6 +17,10 @@ export abstract class Stream<A> {
         return out;
     }
 
+    mapTo<B>(b: B): Stream<B> {
+        return this.map(() => b);
+    }
+
     abstract listen(h: (a: A) => void): void;
 }
 

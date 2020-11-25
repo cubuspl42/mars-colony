@@ -1,0 +1,79 @@
+import { Cell } from "./Cell";
+import { StreamSink } from "./Stream";
+
+export abstract class ReactiveSet<A> {
+    static flatten<A>(c: Cell<ReadonlySet<A>>): ReactiveSet<A> {
+        return new FlattenedReactiveSet(c);
+    }
+
+    abstract asCell(): Cell<ReadonlySet<A>>;
+
+    has(a: A): Cell<boolean> {
+        return this.asCell().map((set) => set.has(a));
+    }
+
+    map<B>(f: (a: A) => B): ReactiveSet<B> {
+        const cell = this.asCell().map((set) => {
+            const array = [...set];
+            const mappedArray = array.map((a) => f(a));
+            const mappedSet = new Set(mappedArray);
+            return mappedSet;
+        });
+        return ReactiveSet.flatten(cell);
+    }
+
+    singleWhere(f: (a: A) => boolean): Cell<A | undefined> {
+        return this.asCell().map((set) => {
+            const array = [...set];
+            const matchingElements = [...set].filter((a) => f(a));
+            if (matchingElements.length === 1) {
+                return matchingElements[0];
+            } else {
+                return undefined;
+            }
+        })
+    }
+
+    // fuseMap<B>(f: (a: A) => Cell<B>): ReactiveSet<B> {
+    //     throw new Error("Unimplemented");
+    // }
+}
+
+export class FlattenedReactiveSet<K, A> extends ReactiveSet<A> {
+    private readonly _cell: Cell<ReadonlySet<A>>;
+
+    constructor(cell: Cell<ReadonlySet<A>>) {
+        super();
+        this._cell = cell;
+    }
+
+    asCell(): Cell<ReadonlySet<A>> {
+        return this._cell;
+    }
+}
+
+
+export class MutableReactiveSet<K, A> extends ReactiveSet<A> {
+    private readonly _set: Set<A>;
+
+    private readonly _onChanged = new StreamSink<null>();
+
+    constructor(initialContent?: ReadonlySet<A>) {
+        super();
+        this._set = new Set<A>(initialContent ?? []);
+    }
+
+    asCell(): Cell<ReadonlySet<A>> {
+        return this._onChanged.mapTo(this._set).hold(this._set);
+    }
+
+    add(a: A): void {
+        this._set.add(a);
+        this._onChanged.send(null);
+    }
+
+    delete(a: A): void {
+        this._set.delete(a);
+        this._onChanged.send(null);
+    }
+}

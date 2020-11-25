@@ -1,8 +1,13 @@
-import { MutableReactiveMap, ReactiveMap } from "./frp/ReactiveMap";
+import { MutableReactiveSet } from "./frp/ReactiveSet";
+import { Cell } from "./frp/Cell";
 
 export interface HexCoord {
     readonly i: number;
     readonly j: number;
+}
+
+function hexCoordEquals(a: HexCoord, b: HexCoord) {
+    return a.i === b.i && a.j === b.j;
 }
 
 export function hexCoordToKeyString(c: HexCoord) {
@@ -15,31 +20,33 @@ export enum BuildingKind {
 }
 
 export interface Building {
+    readonly coord: HexCoord;
     readonly kind: BuildingKind;
 }
 
 export class Game {
-    private readonly _buildings: MutableReactiveMap<HexCoord, Building>;
-
-    get buildings(): ReactiveMap<HexCoord, Building> {
-        return this._buildings;
-    }
+    private readonly _buildingsS: MutableReactiveSet<HexCoord, Building>;
 
     buildBuilding(coord: HexCoord, buildingKind: BuildingKind): void {
-        const existingBuilding = this.buildings.get(coord);
+        const existingBuilding = this.getBuildingAt(coord).value;
+
         if (existingBuilding === undefined) {
             console.log(`Building building ${buildingKind} on ${JSON.stringify(coord)}`);
-            this._buildings.set(coord, {
+
+            this._buildingsS.add({
+                coord,
                 kind: buildingKind,
             });
         }
     }
 
-    getBuildingAt(coord: HexCoord): Building | undefined {
-        return this._buildings.get(coord);
+    getBuildingAt(coord: HexCoord): Cell<Building | undefined> {
+        return this._buildingsS.singleWhere(
+            (b) => hexCoordEquals(b.coord, coord),
+        );
     }
 
     constructor() {
-        this._buildings = new MutableReactiveMap(hexCoordToKeyString);
+        this._buildingsS = new MutableReactiveSet();
     }
 }

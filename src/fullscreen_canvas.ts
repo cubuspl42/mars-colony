@@ -1,6 +1,6 @@
 import { Cell } from "./frp/Cell";
 
-type DrawFn = (context: CanvasRenderingContext2D) => void;
+export type DrawFn = (context: CanvasRenderingContext2D) => void;
 
 export function createFullscreenCanvas(
     drawFn: Cell<DrawFn>,

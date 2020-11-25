@@ -1,11 +1,10 @@
 import * as tm from "transformation-matrix";
-import { createFullscreenCanvas } from "./fullscreen_canvas";
+import { createFullscreenCanvas, DrawFn } from "./fullscreen_canvas";
 import { mapHexCoordToWorldPoint, mapWorldPointToHexCoord } from "./hex";
 import { Vec2 } from "./geometry";
-import { MutableCell } from "./frp/Cell";
+import { Cell, MutableCell } from "./frp/Cell";
 import { MyColors } from "./colors";
 import { BuildingKind, Game, HexCoord } from "./game";
-import { Key } from "ts-key-enum";
 
 const buildMatrix = (canvas: HTMLCanvasElement) =>
     tm.compose(
@@ -58,32 +57,46 @@ function drawGround(args: {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-function drawHexGrid(args: {
-    readonly ctx: CanvasRenderingContext2D,
+function buildHexGridDrawFn(args: {
     readonly game: Game,
-    readonly matrix: tm.Matrix,
-}) {
-    const { ctx, game, matrix } = args;
+}): Cell<DrawFn> {
+    const { game } = args;
+
+    const buildHexDrawFn = (coord: HexCoord) => {
+        return game.getBuildingAt(coord).map((building) => {
+            return (ctx: CanvasRenderingContext2D) => {
+                const matrix = buildMatrix(ctx.canvas);
+
+                drawHex(ctx, matrix, coord);
+
+                if (building !== undefined) {
+                    drawBuilding({
+                        ctx,
+                        buildingKind: building.kind,
+                        matrix,
+                        hexCoord: coord,
+                    });
+                }
+            }
+        });
+    }
+
+    const hexDrawFns = new Array<Cell<DrawFn>>();
 
     const n = 4;
     for (let i = -n; i <= n; ++i) {
         for (let j = -n; j <= n; ++j) {
-            const hexCoord = { i, j };
-
-            drawHex(ctx, matrix, hexCoord);
-
-            const building = game.getBuildingAt(hexCoord);
-
-            if (building !== undefined) {
-                drawBuilding({
-                    ctx,
-                    buildingKind: building.kind,
-                    matrix,
-                    hexCoord: hexCoord,
-                });
-            }
+            hexDrawFns.push(buildHexDrawFn({ i, j }));
         }
     }
+
+    return Cell.fuseArray(hexDrawFns).map((drawFns) => {
+        return (ctx) => {
+            drawFns.forEach((drawHex) => {
+                drawHex(ctx);
+            });
+        }
+    });
 }
 
 function drawBuilding(args: {
@@ -106,27 +119,36 @@ function drawBuilding(args: {
     ctx.fillText(text, vs.x, vs.y);
 }
 
-function drawGame(args: {
-    readonly ctx: CanvasRenderingContext2D,
+function buildGameDrawFn(args: {
     readonly game: Game,
     readonly selectedHexCoord: MutableCell<HexCoord>,
-}): void {
-    const { ctx, game, selectedHexCoord } = args;
+}): Cell<DrawFn> {
+    const { game, selectedHexCoord } = args;
 
-    const canvas = ctx.canvas;
-    const matrix = buildMatrix(canvas);
+    return Cell.map2(
+        buildHexGridDrawFn({ game }),
+        selectedHexCoord,
+        (
+            drawHexGrid,
+            selHexCoord,
+        ) => {
+            return (ctx: CanvasRenderingContext2D) => {
+                const matrix = buildMatrix(ctx.canvas);
 
-    ctx.lineWidth = 2;
+                ctx.lineWidth = 2;
 
-    drawGround({ ctx });
+                drawGround({ ctx });
 
-    ctx.strokeStyle = MyColors.hexBorder;
+                ctx.strokeStyle = MyColors.hexBorder;
 
-    drawHexGrid({ ctx, game, matrix });
+                drawHexGrid(ctx);
 
-    ctx.strokeStyle = MyColors.selectedHexBorder;
+                ctx.strokeStyle = MyColors.selectedHexBorder;
 
-    drawHex(ctx, matrix, selectedHexCoord.value);
+                drawHex(ctx, matrix, selHexCoord);
+            };
+        },
+    );
 }
 
 export function createHexGridCanvas(args: {
@@ -135,12 +157,8 @@ export function createHexGridCanvas(args: {
 }) {
     const { game, selectedHexCoord } = args;
 
-    const redraw = (ctx: CanvasRenderingContext2D) => {
-        drawGame({ ctx, game, selectedHexCoord, });
-    }
-
     const canvas = createFullscreenCanvas(
-        selectedHexCoord.mapTo(redraw),
+        buildGameDrawFn({ game, selectedHexCoord }),
     );
 
     canvas.addEventListener('click', (e) => {
@@ -150,8 +168,11 @@ export function createHexGridCanvas(args: {
     });
 
     document.body.addEventListener('keydown', (e) => {
-        if (e.key === Key.Enter) {
-            game.buildBuilding(selectedHexCoord.value, BuildingKind.buildingA);
+        const coord = selectedHexCoord.value;
+        if (e.key === "a") {
+            game.buildBuilding(coord, BuildingKind.buildingA);
+        } else if (e.key === "b") {
+            game.buildBuilding(coord, BuildingKind.buildingB);
         }
     });
 
