@@ -6,6 +6,16 @@ export abstract class ReactiveSet<A> {
         return new FlattenedReactiveSet(c);
     }
 
+    static fuse<A>(rs: ReactiveSet<Cell<A>>): ReactiveSet<A> {
+        return ReactiveSet.flatten(
+            rs.asCell()
+                .flatMap((cs) =>
+                    Cell.sequenceArray([...cs])
+                        .map((a) => new Set(a)),
+                ),
+        );
+    }
+
     abstract asCell(): Cell<ReadonlySet<A>>;
 
     has(a: A): Cell<boolean> {
@@ -34,9 +44,9 @@ export abstract class ReactiveSet<A> {
         })
     }
 
-    // fuseMap<B>(f: (a: A) => Cell<B>): ReactiveSet<B> {
-    //     throw new Error("Unimplemented");
-    // }
+    fuseMap<B>(f: (a: A) => Cell<B>): ReactiveSet<B> {
+        return ReactiveSet.fuse(this.map(f));
+    }
 }
 
 export class FlattenedReactiveSet<K, A> extends ReactiveSet<A> {
@@ -51,7 +61,6 @@ export class FlattenedReactiveSet<K, A> extends ReactiveSet<A> {
         return this._cell;
     }
 }
-
 
 export class MutableReactiveSet<A> extends ReactiveSet<A> {
     private readonly _set: Set<A>;

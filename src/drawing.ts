@@ -94,7 +94,7 @@ function buildHexGridDrawFn(args: {
         }
     }
 
-    return Cell.fuseArray(hexDrawFns).map((drawFns) => {
+    return Cell.sequenceArray(hexDrawFns).map((drawFns) => {
         return (ctx) => {
             drawFns.forEach((drawHex) => {
                 drawHex(ctx);

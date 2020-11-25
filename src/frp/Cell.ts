@@ -1,6 +1,17 @@
 import { Stream, StreamSink } from "./Stream";
 
 export abstract class Cell<A> {
+    static flatten<A>(cca: Cell<Cell<A>>): Cell<A> {
+        const out = new MutableCell<A>(cca.value.value);
+        cca.listen((ca) => {
+            out.value = ca.value;
+            ca.listen((a) => { // FIXME: Unlisten!
+                out.value = a;
+            });
+        });
+        return out;
+    }
+
     static map2<A, B, C>(ca: Cell<A>, cb: Cell<B>, f: (a: A, b: B) => C): Cell<C> {
         const cc = new MutableCell(f(ca.value, cb.value));
 
@@ -14,7 +25,7 @@ export abstract class Cell<A> {
         return cc;
     }
 
-    static fuseArray<A>(ac: ReadonlyArray<Cell<A>>): Cell<ReadonlyArray<A>> {
+    static sequenceArray<A>(ac: ReadonlyArray<Cell<A>>): Cell<ReadonlyArray<A>> {
         const buildMappedArray = () => ac.map((a) => a.value);
         const initValue = buildMappedArray();
         const ca = new MutableCell<ReadonlyArray<A>>(initValue);
@@ -33,6 +44,10 @@ export abstract class Cell<A> {
     abstract values(): Stream<A>;
 
     abstract map<B>(f: (a: A) => B): Cell<B>;
+
+    flatMap<B>(f: (a: A) => Cell<B>): Cell<B> {
+        return Cell.flatten(this.map(f));
+    }
 
     abstract listen(h: (a: A) => void): void;
 }
