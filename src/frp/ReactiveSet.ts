@@ -53,7 +53,7 @@ export class FlattenedReactiveSet<K, A> extends ReactiveSet<A> {
 }
 
 
-export class MutableReactiveSet<K, A> extends ReactiveSet<A> {
+export class MutableReactiveSet<A> extends ReactiveSet<A> {
     private readonly _set: Set<A>;
 
     private readonly _onChanged = new StreamSink<null>();

@@ -6,11 +6,15 @@ import { Cell, MutableCell } from "./frp/Cell";
 import { MyColors } from "./colors";
 import { BuildingKind, Game, HexCoord } from "./game";
 
+export const hexGridScaleMatrix = tm.compose(
+    tm.scale(64, 64),
+    tm.scale(1, 0.55),
+);
+
 const buildMatrix = (canvas: HTMLCanvasElement) =>
     tm.compose(
         tm.translate(canvas.width / 2, canvas.height / 2),
-        tm.scale(64, 64),
-        tm.scale(1, 3 / 4),
+        hexGridScaleMatrix,
     );
 
 function drawHex(
@@ -70,12 +74,12 @@ function buildHexGridDrawFn(args: {
                 drawHex(ctx, matrix, coord);
 
                 if (building !== undefined) {
-                    drawBuilding({
-                        ctx,
-                        buildingKind: building.kind,
-                        matrix,
-                        hexCoord: coord,
-                    });
+                    // drawBuilding({
+                    //     ctx,
+                    //     buildingKind: building.kind,
+                    //     matrix,
+                    //     hexCoord: coord,
+                    // });
                 }
             }
         });

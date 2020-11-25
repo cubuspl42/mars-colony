@@ -1,4 +1,4 @@
-import { MutableReactiveSet } from "./frp/ReactiveSet";
+import { MutableReactiveSet, ReactiveSet } from "./frp/ReactiveSet";
 import { Cell } from "./frp/Cell";
 
 export interface HexCoord {
@@ -25,7 +25,11 @@ export interface Building {
 }
 
 export class Game {
-    private readonly _buildingsS: MutableReactiveSet<HexCoord, Building>;
+    private readonly _buildings: MutableReactiveSet<Building>;
+
+    get buildings(): ReactiveSet<Building> {
+        return this._buildings;
+    }
 
     buildBuilding(coord: HexCoord, buildingKind: BuildingKind): void {
         const existingBuilding = this.getBuildingAt(coord).value;
@@ -33,7 +37,7 @@ export class Game {
         if (existingBuilding === undefined) {
             console.log(`Building building ${buildingKind} on ${JSON.stringify(coord)}`);
 
-            this._buildingsS.add({
+            this._buildings.add({
                 coord,
                 kind: buildingKind,
             });
@@ -41,12 +45,12 @@ export class Game {
     }
 
     getBuildingAt(coord: HexCoord): Cell<Building | undefined> {
-        return this._buildingsS.singleWhere(
+        return this._buildings.singleWhere(
             (b) => hexCoordEquals(b.coord, coord),
         );
     }
 
     constructor() {
-        this._buildingsS = new MutableReactiveSet();
+        this._buildings = new MutableReactiveSet();
     }
 }
