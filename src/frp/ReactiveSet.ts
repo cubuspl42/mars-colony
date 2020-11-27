@@ -1,5 +1,17 @@
 import { Cell } from "./Cell";
-import { StreamSink } from "./Stream";
+import { Stream, StreamSink } from "./Stream";
+
+export class Sets {
+    static sum<A>(s: ReadonlySet<number>): number {
+        let acc = 0;
+        s.forEach((a) => {
+            acc += a;
+        });
+        return acc;
+    }
+}
+
+export type SetMergeFn<A, B> = (s: ReadonlySet<A>) => B;
 
 export abstract class ReactiveSet<A> {
     static flatten<A>(c: Cell<ReadonlySet<A>>): ReactiveSet<A> {
@@ -14,6 +26,13 @@ export abstract class ReactiveSet<A> {
                         .map((a) => new Set(a)),
                 ),
         );
+    }
+
+    static merge<A, B>(rs: ReactiveSet<Stream<A>>): Stream<A> {
+        return rs.asCell()
+            .switchMapS((ssa) =>
+                Stream.mergeSet(ssa)
+            );
     }
 
     abstract asCell(): Cell<ReadonlySet<A>>;
@@ -46,6 +65,10 @@ export abstract class ReactiveSet<A> {
 
     fuseMap<B>(f: (a: A) => Cell<B>): ReactiveSet<B> {
         return ReactiveSet.fuse(this.map(f));
+    }
+
+    mergeMap<B>(f: (a: A) => Stream<B>): Stream<B> {
+        return ReactiveSet.merge(this.map(f));
     }
 }
 

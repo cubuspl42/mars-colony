@@ -2,6 +2,7 @@ import { MutableCell } from "./frp/Cell";
 import { createHexGridCanvas } from "./drawing";
 import { Game, HexCoord } from "./game";
 import { createBuildingGroup } from "./buildings_group";
+import { createHudElement } from "./hud";
 
 const game = new Game();
 
@@ -32,3 +33,6 @@ const buildingsGroup = createBuildingGroup({ game });
 
 root.appendChild(buildingsGroup);
 
+const hud = createHudElement({ game });
+
+root.appendChild(hud);

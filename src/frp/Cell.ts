@@ -12,6 +12,22 @@ export abstract class Cell<A> {
         return out;
     }
 
+    static switchS<A>(csa: Cell<Stream<A>>): Stream<A> {
+        const out = new StreamSink<A>();
+
+        csa.value.listen((a) => { // FIXME: Unlisten!
+            out.send(a);
+        });
+
+        csa.listen((sa) => {
+            sa.listen((a) => { // FIXME: Unlisten!
+                out.send(a);
+            });
+        });
+
+        return out;
+    }
+
     static map2<A, B, C>(ca: Cell<A>, cb: Cell<B>, f: (a: A, b: B) => C): Cell<C> {
         const cc = new MutableCell(f(ca.value, cb.value));
 
@@ -39,6 +55,17 @@ export abstract class Cell<A> {
         return ca;
     }
 
+    // (switchS . map) [not undefined]
+    static switchMapNuS<A, B>(ca: Cell<A | undefined>, f: (a: A) => Stream<B>): Stream<B> {
+        return Cell.switchS(ca.map((a) => {
+            if (a !== undefined) {
+                return f(a);
+            } else {
+                return Stream.never();
+            }
+        }));
+    }
+
     abstract get value(): A;
 
     abstract values(): Stream<A>;
@@ -47,6 +74,29 @@ export abstract class Cell<A> {
 
     flatMap<B>(f: (a: A) => Cell<B>): Cell<B> {
         return Cell.flatten(this.map(f));
+    }
+
+    // (switchS . map)
+    switchMapS<B>(f: (a: A) => Stream<B>): Stream<B> {
+        return Cell.switchS(this.map(f));
+    }
+
+    where(f: (a: A) => boolean): Cell<A | undefined> {
+        const out = new MutableCell<A | undefined>(
+            f(this.value) ? this.value : undefined,
+        );
+
+        this.listen((a) => {
+            if (f(a)) {
+                out.value = a;
+            }
+        });
+
+        return out;
+    }
+
+    whereSubclass<A2 extends A>(A2_: { new(): A2 }): Cell<A2 | undefined> {
+        return this.where((a) => a instanceof A2_).map((a) => a as A2);
     }
 
     abstract listen(h: (a: A) => void): void;

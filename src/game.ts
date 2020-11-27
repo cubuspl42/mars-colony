@@ -60,22 +60,33 @@ export class Building {
     readonly kind: BuildingKind;
     readonly state: Cell<BuildingState>;
 
+
+    get onFinished(): Stream<null> {
+        return Cell.switchMapNuS(
+            this.state.whereSubclass(InProgressBuilding),
+            (st) => st.onFinished,
+        );
+    }
+
     constructor(args: {
         readonly coord: HexCoord,
         readonly kind: BuildingKind,
     }) {
+        const initialState = new InProgressBuilding();
+        const state = initialState.onFinished
+            .mapTo<BuildingState>(new FinishedBuilding())
+            .hold(initialState);
+
         this.coord = args.coord;
         this.kind = args.kind;
-
-        const initialState = new InProgressBuilding();
-        this.state = initialState.onFinished
-            .mapTo(new FinishedBuilding())
-            .hold(initialState);
+        this.state = state;
     }
 }
 
 export class Game {
-    private readonly _buildings: MutableReactiveSet<Building>;
+    private readonly _buildings: MutableReactiveSet<Building>
+
+    readonly xp: Cell<number>;
 
     get buildings(): ReactiveSet<Building> {
         return this._buildings;
@@ -101,6 +112,17 @@ export class Game {
     }
 
     constructor() {
-        this._buildings = new MutableReactiveSet();
+        const buildings = new MutableReactiveSet<Building>();
+
+        const xp = Stream.accumSum(buildings
+            .mergeMap((b) => b.onFinished.mapTo(10))
+        );
+
+        xp.listen((xp) => {
+            console.log(`XP: ${xp}`);
+        });
+
+        this._buildings = buildings;
+        this.xp = xp;
     }
 }
