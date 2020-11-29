@@ -1,4 +1,4 @@
-import { Game } from "./game";
+import { Game } from "./game/game";
 import { Cell } from "./frp/Cell";
 
 function createTextNode(text: Cell<string>): Text {
@@ -23,7 +23,7 @@ export function createHudElement(args: {
     container.style.padding = "16px";
     wrapper.appendChild(container);
 
-    const xpText = createTextNode(game.xp.map((x) => `XP: ${x}`));
+    const xpText = createTextNode(game.xpCount.map((x) => `XP: ${x}`));
     container.appendChild(xpText);
 
     return wrapper;

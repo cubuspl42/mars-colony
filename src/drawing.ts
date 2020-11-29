@@ -4,7 +4,8 @@ import { mapHexCoordToWorldPoint, mapWorldPointToHexCoord } from "./hex";
 import { Vec2 } from "./geometry";
 import { Cell, MutableCell } from "./frp/Cell";
 import { MyColors } from "./colors";
-import { BuildingKind, Game, HexCoord } from "./game";
+import { Game, HexCoord } from "./game/game";
+import { BuildingPrototype } from "./game/buildings";
 
 export const hexGridScaleMatrix = tm.compose(
     tm.scale(64, 64),
@@ -103,26 +104,6 @@ function buildHexGridDrawFn(args: {
     });
 }
 
-function drawBuilding(args: {
-    readonly ctx: CanvasRenderingContext2D,
-    readonly buildingKind: BuildingKind,
-    readonly matrix: tm.Matrix,
-    readonly hexCoord: HexCoord,
-}) {
-    const { ctx, buildingKind, matrix, hexCoord } = args;
-
-    ctx.fillStyle = "#545454";
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = "center";
-    ctx.font = "24pt sans-serif"
-
-    const vw = mapHexCoordToWorldPoint(hexCoord);
-    const vs = tm.applyToPoint(matrix, vw);
-    const text = buildingKind.slice(-1);
-
-    ctx.fillText(text, vs.x, vs.y);
-}
-
 function buildGameDrawFn(args: {
     readonly game: Game,
     readonly selectedHexCoord: MutableCell<HexCoord>,
@@ -174,9 +155,9 @@ export function createHexGridCanvas(args: {
     document.body.addEventListener('keydown', (e) => {
         const coord = selectedHexCoord.value;
         if (e.key === "a") {
-            game.buildBuilding(coord, BuildingKind.buildingA);
+            game.placeBuilding(coord, BuildingPrototype.habitat);
         } else if (e.key === "b") {
-            game.buildBuilding(coord, BuildingKind.buildingB);
+            game.placeBuilding(coord, BuildingPrototype.mineshaft);
         }
     });
 

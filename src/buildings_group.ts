@@ -1,9 +1,10 @@
-import { Building, Game, InProgressBuilding } from "./game";
+import { Building, BuildingPrototype, IncompleteBuilding } from "./game/buildings";
 import { ReactiveSet } from "./frp/ReactiveSet";
 import { Cell, MutableCell } from "./frp/Cell";
 import { mapHexCoordToWorldPoint } from "./hex";
 import * as tm from "transformation-matrix";
 import { hexGridScaleMatrix } from "./drawing";
+import { Game } from "./game/game";
 
 function clearChildren(element: HTMLElement) {
     while (element.firstChild) {
@@ -73,16 +74,27 @@ function createBuildingElement(args: {
         const img = document.createElement("img");
 
         img.style.position = "absolute";
-        img.width = 128;
-        img.src = "assets/building-a.png";
-        img.style.transform = "translate(-50%, -50%)";
+
+        if (building.prototype === BuildingPrototype.mineshaft) {
+            img.width = 110;
+            img.src = "assets/mineshaft.png";
+            img.style.transform = "translate(-50%, -45%)";
+        } else {
+            img.width = 128;
+            img.src = "assets/building-a.png";
+            img.style.transform = "translate(-50%, -50%)";
+        }
+
+        img.src = building.prototype === BuildingPrototype.mineshaft ?
+            "assets/mineshaft.png" :
+            "assets/building-a.png";
         img.style.pointerEvents = "none";
-        img.style.opacity = `${state instanceof InProgressBuilding ? 0.5 : 1}`;
+        img.style.opacity = `${state instanceof IncompleteBuilding ? 0.5 : 1}`;
 
         group.appendChild(img);
 
-        if (state instanceof InProgressBuilding) {
-            const progress = animationCell().map(() => state.getProgress());
+        if (state instanceof IncompleteBuilding) {
+            const progress = animationCell().map(() => state.getConstructionProgress());
             const progressBar = createProgressBarElement(progress);
 
             group.appendChild(progressBar);

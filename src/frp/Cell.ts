@@ -95,7 +95,7 @@ export abstract class Cell<A> {
         return out;
     }
 
-    whereSubclass<A2 extends A>(A2_: { new(): A2 }): Cell<A2 | undefined> {
+    whereSubclass<A2 extends A>(A2_: { new(...args: any[]): A2 }): Cell<A2 | undefined> {
         return this.where((a) => a instanceof A2_).map((a) => a as A2);
     }
 
