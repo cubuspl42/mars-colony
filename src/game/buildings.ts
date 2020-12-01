@@ -3,6 +3,19 @@ import { LazyGetter } from "lazy-get-decorator";
 import { Cell, Const } from "../frp/Cell";
 import { HexCoord } from "./game";
 
+function periodic(periodMillis: number): Stream<null> {
+    const out = new StreamSink<null>();
+
+    const register = () => setTimeout(() => {
+        out.send(null);
+        register();
+    }, periodMillis);
+
+    register();
+
+    return out;
+}
+
 export class BuildingState {
     readonly _BuildingState = null;
 }
@@ -51,8 +64,14 @@ export class CompleteHabitat extends CompleteBuilding {
 }
 
 export class CompleteMineshaft extends CompleteBuilding {
-    doMineshaftStuff() {
+    private static readonly miningPeriodSec = 5;
 
+    @LazyGetter()
+    get onIronMined(): Stream<{
+        readonly minedIronAmount: number;
+    }> {
+        return periodic(CompleteMineshaft.miningPeriodSec * 1000)
+            .mapTo({ minedIronAmount: 10 });
     }
 }
 
@@ -94,7 +113,7 @@ export class Building {
     readonly state: Cell<BuildingState>;
 
     get onConstructionFinished(): Stream<null> {
-        return Cell.switchMapNuS(
+        return Cell.switchMapNotUndefinedS(
             this.state.whereSubclass(IncompleteBuilding),
             (st) => st.onConstructionFinished,
         );

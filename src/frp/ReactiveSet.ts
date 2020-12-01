@@ -2,6 +2,11 @@ import { Cell } from "./Cell";
 import { Stream, StreamSink } from "./Stream";
 
 export class Sets {
+    static whereNotUndefined<A>(s: ReadonlySet<A | undefined>): ReadonlySet<A> {
+        const array = [...s].filter((a) => a !== undefined) as ReadonlyArray<A>;
+        return new Set<A>(array);
+    }
+
     static sum<A>(s: ReadonlySet<number>): number {
         let acc = 0;
         s.forEach((a) => {
@@ -14,14 +19,14 @@ export class Sets {
 export type SetMergeFn<A, B> = (s: ReadonlySet<A>) => B;
 
 export abstract class ReactiveSet<A> {
-    static flatten<A>(c: Cell<ReadonlySet<A>>): ReactiveSet<A> {
+    static fromC<A>(c: Cell<ReadonlySet<A>>): ReactiveSet<A> {
         return new FlattenedReactiveSet(c);
     }
 
     static fuse<A>(rs: ReactiveSet<Cell<A>>): ReactiveSet<A> {
-        return ReactiveSet.flatten(
+        return ReactiveSet.fromC(
             rs.asCell()
-                .flatMap((cs) =>
+                .switchMapC((cs) =>
                     Cell.sequenceArray([...cs])
                         .map((a) => new Set(a)),
                 ),
@@ -33,6 +38,12 @@ export abstract class ReactiveSet<A> {
             .switchMapS((ssa) =>
                 Stream.mergeSet(ssa)
             );
+    }
+
+    static whereNotUndefined<A>(rs: ReactiveSet<A | undefined>): ReactiveSet<A> {
+        return ReactiveSet.fromC(
+            rs.asCell().map(Sets.whereNotUndefined),
+        );
     }
 
     abstract asCell(): Cell<ReadonlySet<A>>;
@@ -48,7 +59,11 @@ export abstract class ReactiveSet<A> {
             const mappedSet = new Set(mappedArray);
             return mappedSet;
         });
-        return ReactiveSet.flatten(cell);
+        return ReactiveSet.fromC(cell);
+    }
+
+    fuseMapNotUndefined<B>(f: (a: A) => Cell<B | undefined>): ReactiveSet<B> {
+        return ReactiveSet.whereNotUndefined(this.fuseMap(f));
     }
 
     singleWhere(f: (a: A) => boolean): Cell<A | undefined> {

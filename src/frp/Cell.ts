@@ -1,7 +1,7 @@
 import { Stream, StreamSink } from "./Stream";
 
 export abstract class Cell<A> {
-    static flatten<A>(cca: Cell<Cell<A>>): Cell<A> {
+    static switchC<A>(cca: Cell<Cell<A>>): Cell<A> {
         const out = new MutableCell<A>(cca.value.value);
         cca.listen((ca) => {
             out.value = ca.value;
@@ -56,7 +56,7 @@ export abstract class Cell<A> {
     }
 
     // (switchS . map) [not undefined]
-    static switchMapNuS<A, B>(ca: Cell<A | undefined>, f: (a: A) => Stream<B>): Stream<B> {
+    static switchMapNotUndefinedS<A, B>(ca: Cell<A | undefined>, f: (a: A) => Stream<B>): Stream<B> {
         return Cell.switchS(ca.map((a) => {
             if (a !== undefined) {
                 return f(a);
@@ -72,8 +72,8 @@ export abstract class Cell<A> {
 
     abstract map<B>(f: (a: A) => B): Cell<B>;
 
-    flatMap<B>(f: (a: A) => Cell<B>): Cell<B> {
-        return Cell.flatten(this.map(f));
+    switchMapC<B>(f: (a: A) => Cell<B>): Cell<B> {
+        return Cell.switchC(this.map(f));
     }
 
     // (switchS . map)

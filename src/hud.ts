@@ -23,8 +23,20 @@ export function createHudElement(args: {
     container.style.padding = "16px";
     wrapper.appendChild(container);
 
-    const xpText = createTextNode(game.xpCount.map((x) => `XP: ${x}`));
-    container.appendChild(xpText);
+    const appendHudTextNode = (c: Cell<string>): void => {
+        const textNode = createTextNode(c);
+
+        const span = document.createElement("span");
+        span.style.marginRight = "10px";
+
+        span.appendChild(textNode);
+
+        container.appendChild(span);
+    }
+
+    appendHudTextNode(game.xpCount.map((x) => `XP: ${x}`));
+
+    appendHudTextNode(game.ironAmount.map((ia) => `Iron: ${ia}`));
 
     return wrapper;
 }

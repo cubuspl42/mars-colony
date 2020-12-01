@@ -1,7 +1,7 @@
 import { MutableReactiveSet, ReactiveSet } from "../frp/ReactiveSet";
 import { Cell } from "../frp/Cell";
 import { Stream } from "../frp/Stream";
-import { Building, BuildingPrototype } from "./buildings";
+import { Building, BuildingPrototype, CompleteMineshaft } from "./buildings";
 
 export interface HexCoord {
     readonly i: number;
@@ -17,6 +17,8 @@ export class Game {
 
     readonly xpCount: Cell<number>;
 
+    readonly ironAmount: Cell<number>;
+
     get buildings(): ReactiveSet<Building> {
         return this._buildings;
     }
@@ -25,8 +27,6 @@ export class Game {
         const existingBuilding = this.getBuildingAt(coord).value;
 
         if (existingBuilding === undefined) {
-            console.log(`Building building ${buildingPrototype} on ${JSON.stringify(coord)}`);
-
             this._buildings.add(Building.$create({
                 coord,
                 prototype: buildingPrototype,
@@ -44,14 +44,22 @@ export class Game {
         const buildings = new MutableReactiveSet<Building>();
 
         const xp = Stream.accumSum(buildings
-            .mergeMap((b) => b.onConstructionFinished.mapTo(10))
+            .mergeMap((b) => b.onConstructionFinished.mapTo(10)));
+
+        const completeMineshafts = buildings.fuseMapNotUndefined(
+            (b) => b.state.whereSubclass(CompleteMineshaft),
         );
 
-        xp.listen((xp) => {
-            console.log(`XP: ${xp}`);
-        });
+        const onIronMined = completeMineshafts.mergeMap(
+            (m) => m.onIronMined,
+        );
+
+        const ironAmount = Stream.accumSum(
+            onIronMined.map((e) => e.minedIronAmount),
+        );
 
         this._buildings = buildings;
         this.xpCount = xp;
+        this.ironAmount = ironAmount;
     }
 }
