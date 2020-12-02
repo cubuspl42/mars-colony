@@ -100,10 +100,8 @@ function createBuildingElement(args: {
             group.appendChild(progressBar);
         }
 
-        return group;
-    })
-
-
+        return group as HTMLElement;
+    });
 }
 
 export function createBuildingGroup(args: {

@@ -28,7 +28,7 @@ export abstract class ReactiveSet<A> {
             rs.asCell()
                 .switchMapC((cs) =>
                     Cell.sequenceArray([...cs])
-                        .map((a) => new Set(a)),
+                        .map((a) => new Set(a) as ReadonlySet<A>),
                 ),
         );
     }
@@ -57,7 +57,7 @@ export abstract class ReactiveSet<A> {
             const array = [...set];
             const mappedArray = array.map((a) => f(a));
             const mappedSet = new Set(mappedArray);
-            return mappedSet;
+            return mappedSet as ReadonlySet<B>;
         });
         return ReactiveSet.fromC(cell);
     }
@@ -111,7 +111,7 @@ export class MutableReactiveSet<A> extends ReactiveSet<A> {
     }
 
     asCell(): Cell<ReadonlySet<A>> {
-        return this._onChanged.mapTo(this._set).hold(this._set);
+        return this._onChanged.map(() => this._set as ReadonlySet<A>).hold(this._set);
     }
 
     add(a: A): void {

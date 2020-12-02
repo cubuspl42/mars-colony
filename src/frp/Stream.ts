@@ -1,18 +1,72 @@
-import { Cell, MutableCell } from "./Cell";
+import { Cell, StreamAccum, StreamHold } from "./Cell";
+
+export interface StreamSubscription {
+    cancel(): void;
+}
 
 export abstract class Stream<A> {
-    static never<A>(): Stream<A> {
-        return new StreamSink();
+    // Operational bits
+
+    private readonly _listeners = new Set<(a: A) => void>();
+
+    abstract link(): void;
+
+    abstract unlink(): void;
+
+    addListener(h: (a: A) => void): void {
+        const oldSize = this._listeners.size;
+
+        this._listeners.add(h);
+
+        if (oldSize === 0 && this._listeners.size === 1) {
+            this.link();
+        }
     }
 
-    static mergeSet<A, B>(s: ReadonlySet<Stream<A>>): Stream<A> {
-        const out = new StreamSink<A>();
+    removeListener(h: (a: A) => void): void {
+        const wasThere = this._listeners.delete(h);
 
-        s.forEach((sa) => {
-            sa.listen((a) => out.send(a));
+        if (!wasThere) {
+            throw new Error();
+        }
+
+        if (wasThere && this._listeners.size === 0) {
+            this.unlink();
+        }
+    }
+
+    listen(h: (a: A) => void): StreamSubscription {
+        this.addListener(h);
+
+        return {
+            cancel: () => {
+                this.removeListener(h);
+            }
+        };
+    }
+
+    protected notify(a: A): void {
+        this._listeners.forEach((h) => {
+            h(a);
         });
+    }
 
-        return out;
+    // Operators
+
+    static never<A>(): Stream<A> {
+        return new StreamNever();
+    }
+
+    map<B>(f: (a: A) => B): Stream<B> {
+        return new StreamMap(this, f);
+    }
+
+    mapTo<B>(b: B): Stream<B> {
+        return this.map(() => b);
+    }
+
+    static mergeSet<A>(s: ReadonlySet<Stream<A>>): Stream<A> {
+        return new StreamMergeSet(s);
     }
 
     static accumSum(sa: Stream<number>, initValue: number = 0): Cell<number> {
@@ -20,45 +74,77 @@ export abstract class Stream<A> {
     }
 
     hold(initValue: A): Cell<A> {
-        const cell = new MutableCell<A>(initValue);
-        this.listen((a) => {
-            cell.value = a;
-        });
-        return cell;
+        return new Cell(new StreamHold(initValue, this));
     }
 
     accum(initValue: A, f: (acc: A, a: A) => A): Cell<A> {
-        const cell = new MutableCell<A>(initValue);
-        this.listen((a) => {
-            cell.value = f(cell.value, a);
-        });
-        return cell;
+        return new Cell(new StreamAccum(initValue, this, f));
     }
-
-    map<B>(f: (a: A) => B): Stream<B> {
-        const out = new StreamSink<B>();
-        this.listen((a) => {
-            out.send(f(a));
-        });
-        return out;
-    }
-
-    mapTo<B>(b: B): Stream<B> {
-        return this.map(() => b);
-    }
-
-    abstract listen(h: (a: A) => void): void;
-
 }
 
-export class StreamSink<A> extends Stream<A> {
-    private readonly _listeners = new Set<(a: A) => void>();
+export class StreamNever<A> extends Stream<A> {
+    link(): void {
 
-    send(a: A): void {
-        this._listeners.forEach((h) => h(a));
     }
 
-    listen(h: (a: A) => void) {
-        this._listeners.add(h);
+    unlink(): void {
+    }
+}
+
+export class StreamMap<A, B> extends Stream<B> {
+    private _sub?: StreamSubscription;
+
+    constructor(
+        private readonly _source: Stream<A>,
+        private readonly _f: (a: A) => B,
+    ) {
+        super();
+    }
+
+
+    link(): void {
+        this._sub = this._source.listen((a) => {
+            this.notify(this._f(a));
+        });
+    }
+
+    unlink(): void {
+        this._sub?.cancel();
+    }
+}
+
+
+export class StreamMergeSet<A> extends Stream<A> {
+    private _subs?: ReadonlyArray<StreamSubscription>;
+
+    constructor(
+        private readonly _set: ReadonlySet<Stream<A>>,
+    ) {
+        super();
+    }
+
+    link(): void {
+        this._subs = [...this._set].map((sa) => sa.listen((a) => {
+            this.notify(a);
+        }));
+    }
+
+    unlink(): void {
+        this._subs?.forEach((sub) => {
+            sub.cancel();
+        });
+    }
+}
+
+
+export class StreamSink<A> extends Stream<A> {
+    send(a: A): void {
+        this.notify(a);
+    }
+
+    link(): void {
+    }
+
+    unlink(): void {
     }
 }

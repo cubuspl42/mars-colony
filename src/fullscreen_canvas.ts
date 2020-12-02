@@ -8,8 +8,7 @@ export function createFullscreenCanvas(
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d')!;
 
-    const redraw = () => {
-        const draw = drawFn.value;
+    const redraw = (draw: DrawFn) => {
         draw(context);
     }
 
@@ -17,14 +16,15 @@ export function createFullscreenCanvas(
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        redraw();
+        redraw(drawFn.value);
     }
 
     resizeCanvas();
 
     window.addEventListener('resize', resizeCanvas);
 
-    drawFn.listen(redraw);
+    drawFn.map(redraw).listen(() => {
+    });
 
     return canvas;
 }

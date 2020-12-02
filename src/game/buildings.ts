@@ -128,7 +128,7 @@ export class Building {
 
         const state = initialState instanceof IncompleteBuilding ?
             initialState.onConstructionFinished
-                .mapTo<BuildingState>(prototype.createCompleteState())
+                .map<BuildingState>(() => prototype.createCompleteState())
                 .hold(initialState) :
             new Const(initialState);
 
