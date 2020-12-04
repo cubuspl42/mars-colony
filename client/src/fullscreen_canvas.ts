@@ -1,4 +1,4 @@
-import { Cell } from "./frp/Cell";
+import { Cell } from "@common/frp/Cell";
 
 export type DrawFn = (context: CanvasRenderingContext2D) => void;
 

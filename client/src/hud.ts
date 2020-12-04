@@ -1,5 +1,5 @@
 import { Game } from "./game/game";
-import { Cell } from "./frp/Cell";
+import { Cell } from "@common/frp/Cell";
 
 function createTextNode(text: Cell<string>): Text {
     const node = document.createTextNode(text.value);

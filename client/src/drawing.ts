@@ -2,7 +2,7 @@ import * as tm from "transformation-matrix";
 import { createFullscreenCanvas, DrawFn } from "./fullscreen_canvas";
 import { mapHexCoordToWorldPoint, mapWorldPointToHexCoord } from "./hex";
 import { Vec2 } from "./geometry";
-import { Cell, MutableCell } from "./frp/Cell";
+import { Cell, MutableCell } from "@common/frp/Cell";
 import { MyColors } from "./colors";
 import { Game, HexCoord } from "./game/game";
 import { BuildingPrototype } from "./game/buildings";

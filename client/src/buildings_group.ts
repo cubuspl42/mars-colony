@@ -1,6 +1,6 @@
 import { Building, BuildingPrototype, IncompleteBuilding } from "./game/buildings";
-import { ReactiveSet } from "./frp/ReactiveSet";
-import { Cell, MutableCell } from "./frp/Cell";
+import { ReactiveSet } from "@common/frp/ReactiveSet";
+import { Cell, MutableCell } from "@common/frp/Cell";
 import { mapHexCoordToWorldPoint } from "./hex";
 import * as tm from "transformation-matrix";
 import { hexGridScaleMatrix } from "./drawing";

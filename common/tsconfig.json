@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "dom",
+      "es2019"
+    ],
+    "composite": true,
+    "downlevelIteration": true,
+    "noImplicitAny": true
+  },
+  "include": [
+    "src"
+  ],
+}

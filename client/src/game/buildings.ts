@@ -1,6 +1,6 @@
-import { Stream, StreamSink } from "../frp/Stream";
+import { Stream, StreamSink } from "@common/frp/Stream";
 import { LazyGetter } from "lazy-get-decorator";
-import { Cell, Const } from "../frp/Cell";
+import { Cell, Const } from "@common/frp/Cell";
 import { HexCoord } from "./game";
 
 function periodic(periodMillis: number): Stream<null> {
