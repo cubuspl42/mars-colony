@@ -1,6 +1,6 @@
 import { MutableCell } from "@common/frp/Cell";
 import { createHexGridCanvas } from "./drawing";
-import { Game, HexCoord } from "./game/game";
+import { Game, HexCoord } from "@common/game/game";
 import { createBuildingGroup } from "./buildings_group";
 import { createHudElement } from "./hud";
 

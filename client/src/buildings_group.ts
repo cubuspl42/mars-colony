@@ -1,10 +1,10 @@
-import { Building, BuildingPrototype, IncompleteBuilding } from "./game/buildings";
+import { Building, BuildingPrototype, IncompleteBuilding } from "@common/game/buildings";
 import { ReactiveSet } from "@common/frp/ReactiveSet";
 import { Cell, MutableCell } from "@common/frp/Cell";
 import { mapHexCoordToWorldPoint } from "./hex";
 import * as tm from "transformation-matrix";
 import { hexGridScaleMatrix } from "./drawing";
-import { Game } from "./game/game";
+import { Game } from "@common/game/game";
 
 function clearChildren(element: HTMLElement) {
     while (element.firstChild) {

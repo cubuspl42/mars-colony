@@ -7,9 +7,10 @@
     ],
     "composite": true,
     "downlevelIteration": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "experimentalDecorators": true
   },
   "include": [
     "src"
-  ],
+  ]
 }

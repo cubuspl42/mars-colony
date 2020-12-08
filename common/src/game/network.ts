@@ -1,4 +1,4 @@
-import { Stream, StreamSink } from "@common/frp/Stream";
+import { Stream, StreamSink } from "../frp/Stream";
 
 type Dict = { [key: string]: Value }
 

@@ -1,7 +1,7 @@
-import { Stream, StreamSink } from "@common/frp/Stream";
 import { LazyGetter } from "lazy-get-decorator";
-import { Cell, Const } from "@common/frp/Cell";
 import { HexCoord } from "./game";
+import { Stream, StreamSink } from "../frp/Stream";
+import { Cell, Const } from "../frp/Cell";
 
 function periodic(periodMillis: number): Stream<null> {
     const out = new StreamSink<null>();
@@ -17,7 +17,7 @@ function periodic(periodMillis: number): Stream<null> {
 }
 
 export class BuildingState {
-    readonly _BuildingState = null;
+    readonly _BuildingState: null = null;
 }
 
 export class IncompleteBuilding extends BuildingState {
@@ -56,7 +56,7 @@ export class IncompleteBuilding extends BuildingState {
 }
 
 export abstract class CompleteBuilding extends BuildingState {
-    readonly _CompleteBuilding = null;
+    readonly _CompleteBuilding: null = null;
 }
 
 export class CompleteHabitat extends CompleteBuilding {

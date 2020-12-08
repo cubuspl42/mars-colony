@@ -1,6 +1,6 @@
 import * as ge from "./geometry";
 import { Vec2 } from "./geometry";
-import { HexCoord } from "./game/game";
+import { HexCoord } from "@common/game/game";
 
 const h = Math.sqrt(3) / 2;
 

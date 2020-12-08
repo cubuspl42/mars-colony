@@ -4,8 +4,8 @@ import { mapHexCoordToWorldPoint, mapWorldPointToHexCoord } from "./hex";
 import { Vec2 } from "./geometry";
 import { Cell, MutableCell } from "@common/frp/Cell";
 import { MyColors } from "./colors";
-import { Game, HexCoord } from "./game/game";
-import { BuildingPrototype } from "./game/buildings";
+import { Game, HexCoord } from "@common/game/game";
+import { BuildingPrototype } from "@common/game/buildings";
 
 export const hexGridScaleMatrix = tm.compose(
     tm.scale(64, 64),

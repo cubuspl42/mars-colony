@@ -1,4 +1,4 @@
-import { Game } from "./game/game";
+import { Game } from "@common/game/game";
 import { Cell } from "@common/frp/Cell";
 
 function createTextNode(text: Cell<string>): Text {
@@ -37,7 +37,7 @@ export function createHudElement(args: {
     appendHudTextNode(game.xpCount.map((x) => `XP: ${x}`));
 
     appendHudTextNode(game.ironAmount.map((ia) => `Iron: ${ia}`));
-    
+
     appendHudTextNode(game.counter.map((ia) => `Counter: ${ia}`));
 
     return wrapper;

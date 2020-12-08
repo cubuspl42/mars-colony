@@ -1,6 +1,6 @@
-import { MutableReactiveSet, ReactiveSet } from "@common/frp/ReactiveSet";
-import { Cell } from "@common/frp/Cell";
-import { Stream } from "@common/frp/Stream";
+import { MutableReactiveSet, ReactiveSet } from "../frp/ReactiveSet";
+import { Cell } from "../frp/Cell";
+import { Stream } from "../frp/Stream";
 import { Building, BuildingPrototype, CompleteMineshaft } from "./buildings";
 import { createNetworkObjectStream } from "./network";
 
