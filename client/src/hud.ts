@@ -37,6 +37,8 @@ export function createHudElement(args: {
     appendHudTextNode(game.xpCount.map((x) => `XP: ${x}`));
 
     appendHudTextNode(game.ironAmount.map((ia) => `Iron: ${ia}`));
+    
+    appendHudTextNode(game.counter.map((ia) => `Counter: ${ia}`));
 
     return wrapper;
 }

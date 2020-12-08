@@ -51,10 +51,21 @@ export abstract class Stream<A> {
         });
     }
 
+    protected refCount(): number {
+        return this._listeners.size;
+    }
+
     // Operators
 
     static never<A>(): Stream<A> {
         return new StreamNever();
+    }
+
+    static looped<A>(f: (self: Stream<A>) => Stream<A>) {
+        const loop = new StreamLoop<A>();
+        const sa = f(loop);
+        loop.loop(sa);
+        return sa;
     }
 
     map<B>(f: (a: A) => B): Stream<B> {
@@ -79,6 +90,34 @@ export abstract class Stream<A> {
 
     accum(initValue: A, f: (acc: A, a: A) => A): Cell<A> {
         return new Cell(new StreamAccum(initValue, this, f));
+    }
+}
+
+export class StreamLoop<A> extends Stream<A> {
+    private _source?: Stream<A>;
+
+    private _sub?: StreamSubscription;
+
+    link(): void {
+        this._sub = this._source?.listen((a) => {
+            this.notify(a);
+        });
+    }
+
+    unlink(): void {
+        this._sub?.cancel();
+    }
+
+    loop(sa: Stream<A>): void {
+        if (this._source !== undefined) {
+            throw new Error("StreamLoop is already looped");
+        }
+
+        if (this.refCount() > 0) {
+            throw new Error("StreamLoop already has listeners; too late to loop");
+        }
+
+        this._source = sa;
     }
 }
 

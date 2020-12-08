@@ -1,14 +1,30 @@
 import * as http from "http";
-import { MutableCell } from "@common/frp/Cell";
 
+function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-const cell = new MutableCell(42);
+const server = http.createServer(async (req, res) => {
+    console.log(`New connection: ${req.url}`);
 
-console.log(`Hello world! ${cell.value}`);
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Access-Control-Allow-Origin': '*',
+        // 'Access-Control-Allow-Methods': 'GET,POST',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+    });
 
-const server = http.createServer((req, res) => {
-    res.writeHead(200);
-    res.end('Hello, World!\n');
+    for (let i = 0; i < 10; ++i) {
+        res.write(
+            'event: message\n' +
+            `data: { "path": [], "data": { "counterValue": ${i} } }\n\n`
+        );
+
+        await sleep(1000);
+    }
+
+    res.end();
 });
 
 server.listen(8080);

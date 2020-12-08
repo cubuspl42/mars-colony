@@ -2,6 +2,7 @@ import { MutableReactiveSet, ReactiveSet } from "@common/frp/ReactiveSet";
 import { Cell } from "@common/frp/Cell";
 import { Stream } from "@common/frp/Stream";
 import { Building, BuildingPrototype, CompleteMineshaft } from "./buildings";
+import { createNetworkObjectStream } from "./network";
 
 export interface HexCoord {
     readonly i: number;
@@ -18,6 +19,8 @@ export class Game {
     readonly xpCount: Cell<number>;
 
     readonly ironAmount: Cell<number>;
+
+    readonly counter: Cell<number>;
 
     get buildings(): ReactiveSet<Building> {
         return this._buildings;
@@ -58,8 +61,13 @@ export class Game {
             onIronMined.map((e) => e.minedIronAmount),
         );
 
+        const counter = createNetworkObjectStream()
+            .map((no) => no.data.counterValue as number)
+            .hold(0);
+
         this._buildings = buildings;
         this.xpCount = xp;
         this.ironAmount = ironAmount;
+        this.counter = counter;
     }
 }
