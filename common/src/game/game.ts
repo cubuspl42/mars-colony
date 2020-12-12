@@ -1,8 +1,6 @@
-import { MutableReactiveSet, ReactiveSet } from "../frp/ReactiveSet";
+import { ReactiveSet } from "../frp/ReactiveSet";
 import { Cell } from "../frp/Cell";
-import { Stream } from "../frp/Stream";
-import { Building, BuildingPrototype, CompleteMineshaft } from "./buildings";
-import { createNetworkObjectStream } from "./network";
+import { Building, BuildingPrototype } from "./buildings";
 
 export interface HexCoord {
     readonly i: number;
@@ -13,61 +11,20 @@ function hexCoordEquals(a: HexCoord, b: HexCoord) {
     return a.i === b.i && a.j === b.j;
 }
 
-export class Game {
-    private readonly _buildings: MutableReactiveSet<Building>
+export abstract class Game {
+    abstract readonly xpCount: Cell<number>;
 
-    readonly xpCount: Cell<number>;
+    abstract readonly ironAmount: Cell<number>;
 
-    readonly ironAmount: Cell<number>;
+    abstract readonly counter: Cell<number>;
 
-    readonly counter: Cell<number>;
+    abstract get buildings(): ReactiveSet<Building>;
 
-    get buildings(): ReactiveSet<Building> {
-        return this._buildings;
-    }
-
-    placeBuilding(coord: HexCoord, buildingPrototype: BuildingPrototype): void {
-        const existingBuilding = this.getBuildingAt(coord).value;
-
-        if (existingBuilding === undefined) {
-            this._buildings.add(Building.$create({
-                coord,
-                prototype: buildingPrototype,
-            }));
-        }
-    }
+    abstract placeBuilding(coord: HexCoord, buildingPrototype: BuildingPrototype): void;
 
     getBuildingAt(coord: HexCoord): Cell<Building | undefined> {
-        return this._buildings.singleWhere(
+        return this.buildings.singleWhere(
             (b) => hexCoordEquals(b.coord, coord),
         );
-    }
-
-    constructor() {
-        const buildings = new MutableReactiveSet<Building>();
-
-        const xp = Stream.accumSum(buildings
-            .mergeMap((b) => b.onConstructionFinished.mapTo(10)));
-
-        const completeMineshafts = buildings.fuseMapNotUndefined(
-            (b) => b.state.whereSubclass(CompleteMineshaft),
-        );
-
-        const onIronMined = completeMineshafts.mergeMap(
-            (m) => m.onIronMined,
-        );
-
-        const ironAmount = Stream.accumSum(
-            onIronMined.map((e) => e.minedIronAmount),
-        );
-
-        const counter = createNetworkObjectStream()
-            .map((no) => no.data.counterValue as number)
-            .hold(0);
-
-        this._buildings = buildings;
-        this.xpCount = xp;
-        this.ironAmount = ironAmount;
-        this.counter = counter;
     }
 }

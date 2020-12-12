@@ -1,38 +1,43 @@
 import { MutableCell } from "@common/frp/Cell";
 import { createHexGridCanvas } from "./drawing";
-import { Game, HexCoord } from "@common/game/game";
+import { HexCoord } from "@common/game/game";
 import { createBuildingGroup } from "./buildings_group";
 import { createHudElement } from "./hud";
+import { ClientGame } from "./game/game";
 
-const game = new Game();
+async function main() {
+    const game = await ClientGame.connect();
 
-const selectedHexCoord = new MutableCell<HexCoord>({ i: 0, j: 0 });
+    const selectedHexCoord = new MutableCell<HexCoord>({ i: 0, j: 0 });
 
-const root = document.createElement("div");
+    const root = document.createElement("div");
 
-root.style.position = "relative";
-root.style.width = "100vw";
-root.style.height = "100vh";
+    root.style.position = "relative";
+    root.style.width = "100vw";
+    root.style.height = "100vh";
 
-document.body.appendChild(root);
+    document.body.appendChild(root);
 
-const canvas = createHexGridCanvas({
-    selectedHexCoord: selectedHexCoord,
-    game: game,
-});
+    const canvas = createHexGridCanvas({
+        selectedHexCoord: selectedHexCoord,
+        game: game,
+    });
 
-canvas.style.position = "absolute";
-canvas.style.width = "100%";
-canvas.style.height = "100%";
-canvas.style.left = "0";
-canvas.style.right = "0";
+    canvas.style.position = "absolute";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.left = "0";
+    canvas.style.right = "0";
 
-root.appendChild(canvas);
+    root.appendChild(canvas);
 
-const buildingsGroup = createBuildingGroup({ game });
+    const buildingsGroup = createBuildingGroup({ game });
 
-root.appendChild(buildingsGroup);
+    root.appendChild(buildingsGroup);
 
-const hud = createHudElement({ game });
+    const hud = createHudElement({ game });
 
-root.appendChild(hud);
+    root.appendChild(hud);
+}
+
+main();

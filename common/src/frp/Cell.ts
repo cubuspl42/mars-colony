@@ -137,13 +137,13 @@ export class StreamHold<A> extends CellStream<A> {
     }
 }
 
-export class StreamAccum<A> extends CellStream<A> {
+export class StreamAccum<A, B> extends CellStream<B> {
     private _sub?: StreamSubscription;
 
     constructor(
-        initValue: A,
+        initValue: B,
         private readonly _source: Stream<A>,
-        private readonly _f: (acc: A, a: A) => A,
+        private readonly _f: (acc: B, a: A) => B,
     ) {
         super(initValue);
     }

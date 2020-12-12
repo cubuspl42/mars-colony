@@ -2,19 +2,8 @@ import { LazyGetter } from "lazy-get-decorator";
 import { HexCoord } from "./game";
 import { Stream, StreamSink } from "../frp/Stream";
 import { Cell, Const } from "../frp/Cell";
+import { periodic } from "../utils";
 
-function periodic(periodMillis: number): Stream<null> {
-    const out = new StreamSink<null>();
-
-    const register = () => setTimeout(() => {
-        out.send(null);
-        register();
-    }, periodMillis);
-
-    register();
-
-    return out;
-}
 
 export class BuildingState {
     readonly _BuildingState: null = null;

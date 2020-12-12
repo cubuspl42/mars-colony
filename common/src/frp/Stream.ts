@@ -76,6 +76,10 @@ export abstract class Stream<A> {
         return this.map(() => b);
     }
 
+    where(predicate: (a: A) => boolean): Stream<A> {
+        return new StreamWhere(this, predicate);
+    }
+
     static mergeSet<A>(s: ReadonlySet<Stream<A>>): Stream<A> {
         return new StreamMergeSet(s);
     }
@@ -88,8 +92,14 @@ export abstract class Stream<A> {
         return new Cell(new StreamHold(initValue, this));
     }
 
-    accum(initValue: A, f: (acc: A, a: A) => A): Cell<A> {
+    accum<B>(initValue: B, f: (acc: B, a: A) => B): Cell<B> {
         return new Cell(new StreamAccum(initValue, this, f));
+    }
+
+    next(): Promise<A> {
+        return new Promise((resolve) => {
+            this.addListener(resolve);
+        });
     }
 }
 
@@ -152,6 +162,29 @@ export class StreamMap<A, B> extends Stream<B> {
     }
 }
 
+export class StreamWhere<A> extends Stream<A> {
+    private _sub?: StreamSubscription;
+
+    constructor(
+        private readonly _source: Stream<A>,
+        private readonly _predicate: (a: A) => boolean,
+    ) {
+        super();
+    }
+
+
+    link(): void {
+        this._sub = this._source.listen((a) => {
+            if (this._predicate(a)) {
+                this.notify(a);
+            }
+        });
+    }
+
+    unlink(): void {
+        this._sub?.cancel();
+    }
+}
 
 export class StreamMergeSet<A> extends Stream<A> {
     private _subs?: ReadonlyArray<StreamSubscription>;
@@ -174,7 +207,6 @@ export class StreamMergeSet<A> extends Stream<A> {
         });
     }
 }
-
 
 export class StreamSink<A> extends Stream<A> {
     send(a: A): void {
