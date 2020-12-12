@@ -3,7 +3,7 @@ import { Game, HexCoord } from "@common/game/game";
 import { Building, BuildingPrototype } from "@common/game/buildings";
 import { MutableReactiveSet, ReactiveSet } from "@common/frp/ReactiveSet";
 import { NetworkObject } from "@common/game/network";
-import { readCell, readObjectProperty, readRootNetworkObject, } from "./network";
+import { readBuilding, readCell, readObjectProperty, readRootNetworkObject, } from "./network";
 
 
 export class ClientGame extends Game {
@@ -29,12 +29,18 @@ export class ClientGame extends Game {
 
         const counterNetObj = readObjectProperty(rootNetworkObject, "counter");
 
+        const buildingNetObj = readObjectProperty(rootNetworkObject, "building");
+
+        const building = readBuilding(buildingNetObj);
+
         const counter = readCell<number>(counterNetObj);
 
         this.xpCount = new Const(0);
         this.ironAmount = new Const(0);
         this.counter = counter;
-        this.buildings = new MutableReactiveSet();
+        this.buildings = new MutableReactiveSet(new Set([
+            building,
+        ]));
     }
 
     static async connect(): Promise<Game> {

@@ -13,9 +13,17 @@ function clearChildren(element: HTMLElement) {
 }
 
 function link(elements: ReactiveSet<HTMLElement>, parent: HTMLElement) {
-    elements.asCell().listen((elements) => {
+    const cell = elements.asCell();
+
+    const appendChildren = (children: ReadonlySet<HTMLElement>): void => {
+        children.forEach((element) => parent.appendChild(element));
+    }
+
+    appendChildren(cell.value);
+
+    cell.listen((children) => {
         clearChildren(parent);
-        elements.forEach((element) => parent.appendChild(element));
+        appendChildren(children);
     });
 }
 
@@ -110,6 +118,7 @@ export function createBuildingGroup(args: {
     const { game } = args;
 
     const buildingsGroup = document.createElement("div");
+    buildingsGroup.className = "building-group";
     buildingsGroup.style.position = "absolute";
     buildingsGroup.style.left = "50%";
     buildingsGroup.style.top = "50%";

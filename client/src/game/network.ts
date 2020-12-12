@@ -1,6 +1,8 @@
 import { Stream, StreamSink } from "@common/frp/Stream";
 import { Dict, NetworkMessage, NetworkObject, Value } from "@common/game/network";
 import { Cell } from "@common/frp/Cell";
+import { Building, BuildingPrototype, CompleteHabitat } from "@common/game/buildings";
+import { HexCoord } from "@common/game/game";
 
 interface MyEvent {
     readonly data: any;
@@ -37,6 +39,10 @@ export async function readRootNetworkObject(url: string): Promise<NetworkObject>
     }
 }
 
+export function readValue(networkObject: NetworkObject): Value {
+    return networkObject.initialState!;
+}
+
 export function readStream(networkObject: NetworkObject): Stream<Value> {
     const stream = networkObject.sUpdates?.map((msg) => {
         if (msg.path.length !== 0) {
@@ -49,7 +55,7 @@ export function readStream(networkObject: NetworkObject): Stream<Value> {
 }
 
 export function readCell<A>(networkObject: NetworkObject): Cell<A> {
-    const initialValue = networkObject.initialState!;
+    const initialValue = readValue(networkObject);
 
     const values = readStream(networkObject);
 
@@ -89,5 +95,17 @@ export function spyNetworkObject(netObj: NetworkObject): void {
     console.log(`netObj.sUpdates: ${netObj.sUpdates}`)
     netObj.sUpdates?.listen((msg) => {
         console.log(`Network object update`, msg);
+    });
+}
+
+export function readBuilding(
+    networkObject: NetworkObject,
+): Building {
+    const initialDict = networkObject.initialState as Dict;
+    const coord = initialDict["coord"] as unknown as HexCoord;
+    return new Building({
+        prototype: BuildingPrototype.habitat,
+        coord: coord,
+        initialState: new CompleteHabitat(),
     });
 }

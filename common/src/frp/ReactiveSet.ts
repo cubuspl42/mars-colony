@@ -14,6 +14,14 @@ export class Sets {
         });
         return acc;
     }
+
+    static single<A>(s: ReadonlySet<A>): A {
+        if (s.size !== 1) {
+            throw new Error("Set's size does not equal 1");
+        }
+        const arr = [...s];
+        return arr[0];
+    }
 }
 
 export type SetMergeFn<A, B> = (s: ReadonlySet<A>) => B;

@@ -1,4 +1,4 @@
-import { MutableReactiveSet, ReactiveSet } from "@common/frp/ReactiveSet";
+import { MutableReactiveSet, ReactiveSet, Sets } from "@common/frp/ReactiveSet";
 import { Cell } from "@common/frp/Cell";
 import { Stream } from "@common/frp/Stream";
 import { Building, BuildingPrototype, CompleteMineshaft } from "@common/game/buildings";
@@ -16,7 +16,7 @@ function dumpValue<A>(v: Value): NetworkObject {
 function dumpStream<A>(sa: Stream<Value>): NetworkObject {
     return {
         sUpdates: sa.map((a) => ({
-            path: [],
+            path: <ReadonlyArray<string>>[],
             data: a,
         })),
     }
@@ -34,20 +34,33 @@ function dumpObject(
 ): NetworkObject {
     const sUpdatesArr = Object.entries(obj)
         .map(([key, netObj]) =>
-            netObj.sUpdates.map<NetworkMessage>((msg) => ({
+            netObj.sUpdates?.map<NetworkMessage>((msg) => ({
                 path: [key, ...msg.path],
                 data: msg.data,
-            })),
+            })) ?? Stream.never<NetworkMessage>(),
         );
     return {
-        initialState: _.mapValues(obj, (netObj) => netObj.initialState),
+        initialState: _.mapValues(obj, (netObj) => netObj.initialState!),
         sUpdates: Stream.mergeSet(new Set(sUpdatesArr)),
     }
 }
 
+export function dumpBuilding(building: Building): NetworkObject {
+    return dumpValue({
+        "type": "Habitat",
+        "coord": {
+            "i": building.coord.i,
+            "j": building.coord.j,
+        },
+    });
+}
+
 export function dumpGame(game: Game): NetworkObject {
+    const buildings = game.buildings.asCell().value;
+    const singleBuilding = Sets.single(buildings);
     return dumpObject({
-        "counter": dumpCell(game.counter),
+        "counter": dumpCell(game.counter as Cell<Value>),
+        "building": dumpBuilding(singleBuilding)
     });
 }
 
@@ -101,5 +114,7 @@ export class ServerGame extends Game {
         this.xpCount = xp;
         this.ironAmount = ironAmount;
         this.counter = counter;
+
+        this.placeBuilding({ i: 1, j: 2 }, BuildingPrototype.habitat);
     }
 }

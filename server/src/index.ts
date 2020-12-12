@@ -25,16 +25,16 @@ function writeRootNetworkObject(
 ): void {
     writeEvent(res, rootNetworkObject.initialState ?? null);
 
-    const sub = rootNetworkObject.sUpdates.listen((netMsg) => {
+    const sub = rootNetworkObject.sUpdates?.listen((netMsg) => {
         writeEvent(res, netMsg);
     });
 
     req.on("close", () => {
-        sub.cancel();
+        sub?.cancel();
     });
 
     req.on("end", () => {
-        sub.cancel();
+        sub?.cancel();
     });
 }
 
