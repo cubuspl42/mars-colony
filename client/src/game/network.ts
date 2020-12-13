@@ -1,7 +1,13 @@
 import { Stream, StreamSink } from "@common/frp/Stream";
 import { Dict, NetworkMessage, NetworkObject, Value } from "@common/game/network";
 import { Cell } from "@common/frp/Cell";
-import { Building, BuildingPrototype, CompleteHabitat } from "@common/game/buildings";
+import {
+    Building,
+    BuildingPrototype,
+    BuildingState,
+    CompleteHabitat,
+    IncompleteBuilding
+} from "@common/game/buildings";
 import { HexCoord } from "@common/game/game";
 
 interface MyEvent {
@@ -62,6 +68,22 @@ export function readCell<A>(networkObject: NetworkObject): Cell<A> {
     return values.hold(initialValue).map((v) => v as unknown as A);
 }
 
+export function readNetworkObjectCell<A>(networkObject: NetworkObject): Cell<NetworkObject> {
+    const initialValue = readValue(networkObject);
+
+    const values = networkObject.sUpdates
+        ?.where((msg) => msg.path.length === 0)
+        ?.map((msg) => msg.data) ?? Stream.never();
+
+    const sInnerUpdates = networkObject.sUpdates
+        ?.where((msg) => msg.path.length !== 0);
+
+    return values.hold(initialValue).map((value) => <NetworkObject>{
+        initialState: value,
+        sUpdates: sInnerUpdates,
+    });
+}
+
 export function readObjectProperty(
     networkObject: NetworkObject,
     key: string,
@@ -81,6 +103,13 @@ export function readObjectProperty(
     };
 }
 
+export function readObjectCellProperty<V extends Value>(
+    networkObject: NetworkObject,
+    key: string,
+): Cell<V> {
+    return readCell(readObjectProperty(networkObject, key));
+}
+
 export function readObject(
     networkObject: NetworkObject,
     keys: ReadonlyArray<string>,
@@ -98,14 +127,59 @@ export function spyNetworkObject(netObj: NetworkObject): void {
     });
 }
 
+function readHexCoord(value: Value) {
+
+}
+
+function readBuildingPrototype(
+    type: string,
+): BuildingPrototype {
+    switch (type) {
+        case "Habitat":
+            return BuildingPrototype.habitat;
+        case "Mineshaft":
+            return BuildingPrototype.mineshaft;
+        default:
+            throw new Error(`Unrecognized building type: ${type}`);
+    }
+}
+
+function readBuildingState(
+    prototype: BuildingPrototype,
+    stateNetObj: NetworkObject,
+): BuildingState {
+    const initialDict = stateNetObj.initialState as Dict;
+    const state = initialDict["state"];
+
+    switch (state) {
+        case "complete": {
+            return prototype.createCompleteState();
+        }
+        case "incomplete": {
+            return new IncompleteBuilding({
+                constructionDurationSec: prototype.constructionDurationSec,
+                startTime: initialDict["startTime"] as number,
+            });
+        }
+        default:
+            throw new Error(`Unrecognized building state: ${state}`);
+    }
+}
+
 export function readBuilding(
-    networkObject: NetworkObject,
+    buildingNetObj: NetworkObject,
 ): Building {
-    const initialDict = networkObject.initialState as Dict;
+    const initialDict = buildingNetObj.initialState as Dict;
+    const prototype = readBuildingPrototype(initialDict["type"] as string);
     const coord = initialDict["coord"] as unknown as HexCoord;
+    const stateProp = readObjectProperty(buildingNetObj, "state");
+    const state = readNetworkObjectCell(stateProp).map((netObj) =>
+        readBuildingState(prototype, netObj),
+    );
+
     return new Building({
-        prototype: BuildingPrototype.habitat,
-        coord: coord,
-        initialState: new CompleteHabitat(),
+        prototype,
+        coord,
+        state,
     });
 }

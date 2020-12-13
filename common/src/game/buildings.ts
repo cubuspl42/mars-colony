@@ -1,7 +1,7 @@
 import { LazyGetter } from "lazy-get-decorator";
 import { HexCoord } from "./game";
 import { Stream, StreamSink } from "../frp/Stream";
-import { Cell, Const } from "../frp/Cell";
+import { Cell } from "../frp/Cell";
 import { periodic } from "../utils";
 
 
@@ -12,35 +12,49 @@ export class BuildingState {
 export class IncompleteBuilding extends BuildingState {
     private readonly _constructionDurationMillis: number;
 
-    private readonly _startTime: number;
+    readonly startTime: number;
 
-    private readonly _onFinished = new StreamSink<null>();
-
-    readonly onConstructionFinished = this._onFinished as Stream<null>;
+    readonly onConstructionFinished: Stream<null>;
 
     getConstructionProgress(): number {
-        return (Date.now() - this._startTime) / this._constructionDurationMillis;
+        return (Date.now() - this.startTime) / this._constructionDurationMillis;
     }
 
     constructor(args: {
+        readonly startTime: number,
         readonly constructionDurationSec: number,
+        readonly onConstructionFinished?: Stream<null>,
     }) {
         super();
 
-        const { constructionDurationSec } = args;
+        this.startTime = args.startTime;
+        this.onConstructionFinished = args.onConstructionFinished ?? Stream.never();
+        this._constructionDurationMillis = args.constructionDurationSec * 1000;
+    }
+
+    static $create(args: {
+        readonly prototype: BuildingPrototype,
+    }) {
+        const constructionDurationSec = args.prototype.constructionDurationSec;
 
         const constructionDurationMillis = constructionDurationSec * 1000;
 
-        this._startTime = Date.now();
+        const startTime = Date.now();
+
+        const onConstructionFinished = new StreamSink<null>();
 
         setTimeout(
             () => {
-                this._onFinished.send(null);
+                onConstructionFinished.send(null);
             },
             constructionDurationMillis,
         );
 
-        this._constructionDurationMillis = constructionDurationMillis;
+        return new IncompleteBuilding({
+            startTime,
+            constructionDurationSec,
+            onConstructionFinished,
+        });
     }
 }
 
@@ -81,7 +95,7 @@ export abstract class BuildingPrototype {
 }
 
 export class HabitatPrototype extends BuildingPrototype {
-    readonly constructionDurationSec = 5;
+    readonly constructionDurationSec = 15;
 
     createCompleteState(): CompleteBuilding {
         return new CompleteHabitat();
@@ -111,31 +125,29 @@ export class Building {
     constructor(args: {
         readonly prototype: BuildingPrototype,
         readonly coord: HexCoord,
-        readonly initialState: BuildingState,
+        readonly state: Cell<BuildingState>,
     }) {
-        const { initialState, prototype } = args;
-
-        const state = initialState instanceof IncompleteBuilding ?
-            initialState.onConstructionFinished
-                .map<BuildingState>(() => prototype.createCompleteState())
-                .hold(initialState) :
-            new Const(initialState);
-
-        this.prototype = prototype;
+        this.prototype = args.prototype;
         this.coord = args.coord;
-        this.state = state;
+        this.state = args.state;
     }
 
     static $create(args: {
         readonly coord: HexCoord,
         readonly prototype: BuildingPrototype,
     }) {
+        const { coord, prototype } = args;
+
+        const initialState = IncompleteBuilding.$create({ prototype });
+
+        const state = initialState.onConstructionFinished
+            .map<BuildingState>(() => prototype.createCompleteState())
+            .hold(initialState);
+
         return new Building({
-            prototype: args.prototype,
-            coord: args.coord,
-            initialState: new IncompleteBuilding({
-                constructionDurationSec: args.prototype.constructionDurationSec,
-            }),
+            prototype,
+            coord,
+            state,
         });
     }
 }

@@ -80,6 +80,10 @@ export abstract class Stream<A> {
         return new StreamWhere(this, predicate);
     }
 
+    mergeWith(sa: Stream<A>): Stream<A> {
+        return Stream.mergeSet(new Set([this, sa]));
+    }
+
     static mergeSet<A>(s: ReadonlySet<Stream<A>>): Stream<A> {
         return new StreamMergeSet(s);
     }

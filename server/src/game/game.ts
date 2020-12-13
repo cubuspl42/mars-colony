@@ -1,7 +1,14 @@
 import { MutableReactiveSet, ReactiveSet, Sets } from "@common/frp/ReactiveSet";
 import { Cell } from "@common/frp/Cell";
 import { Stream } from "@common/frp/Stream";
-import { Building, BuildingPrototype, CompleteMineshaft } from "@common/game/buildings";
+import {
+    Building,
+    BuildingPrototype,
+    BuildingState,
+    CompleteBuilding,
+    CompleteMineshaft,
+    IncompleteBuilding
+} from "@common/game/buildings";
 import { Game, HexCoord } from "@common/game/game";
 import { periodic } from "@common/utils";
 import { NetworkMessage, NetworkObject, Value } from "@common/game/network";
@@ -29,6 +36,22 @@ function dumpCell<A>(ca: Cell<Value>): NetworkObject {
     }
 }
 
+function dumpNetworkObjectCell<A>(cell: Cell<NetworkObject>): NetworkObject {
+    const sOuterUpdates = cell.values().map((netObj) => <NetworkMessage>{
+        path: [],
+        data: netObj.initialState,
+    });
+
+    const sInnerUpdates = cell.switchMapS((netObj) =>
+        netObj.sUpdates ?? Stream.never<NetworkMessage>(),
+    );
+
+    return {
+        initialState: cell.value.initialState,
+        sUpdates: sOuterUpdates.mergeWith(sInnerUpdates),
+    }
+}
+
 function dumpObject(
     obj: { [key: string]: NetworkObject }
 ): NetworkObject {
@@ -45,13 +68,47 @@ function dumpObject(
     }
 }
 
+export function dumpBuildingState(buildingState: BuildingState): NetworkObject {
+    const dumpCompleteBuilding = () => ({
+        "state": dumpValue("complete"),
+    });
+
+    const dumpIncompleteBuilding = (incompleteBuilding: IncompleteBuilding) => ({
+        "state": dumpValue("incomplete"),
+        "startTime": dumpValue(incompleteBuilding.startTime),
+    });
+
+    const dump = () => {
+        if (buildingState instanceof CompleteBuilding) {
+            return dumpCompleteBuilding();
+        } else if (buildingState instanceof IncompleteBuilding) {
+            return dumpIncompleteBuilding(buildingState);
+        } else {
+            throw new Error(`Unrecognized building state: ${buildingState}`);
+        }
+    }
+
+    return dumpObject(dump());
+}
+
 export function dumpBuilding(building: Building): NetworkObject {
-    return dumpValue({
-        "type": "Habitat",
-        "coord": {
+    const dumpType = () => {
+        if (building.prototype === BuildingPrototype.habitat) {
+            return "Habitat";
+        } else if (building.prototype === BuildingPrototype.mineshaft) {
+            return "Mineshaft";
+        } else {
+            throw new Error(`Unrecognized building prototype`);
+        }
+    }
+
+    return dumpObject({
+        "type": dumpValue(dumpType()),
+        "coord": dumpValue({
             "i": building.coord.i,
             "j": building.coord.j,
-        },
+        }),
+        "state": dumpNetworkObjectCell(building.state.map(dumpBuildingState)),
     });
 }
 
@@ -115,6 +172,6 @@ export class ServerGame extends Game {
         this.ironAmount = ironAmount;
         this.counter = counter;
 
-        this.placeBuilding({ i: 1, j: 2 }, BuildingPrototype.habitat);
+        this.placeBuilding({ i: 1, j: 2 }, BuildingPrototype.mineshaft);
     }
 }
