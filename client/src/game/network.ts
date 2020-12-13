@@ -1,14 +1,9 @@
 import { Stream, StreamSink } from "@common/frp/Stream";
 import { Dict, NetworkMessage, NetworkObject, Value } from "@common/game/network";
 import { Cell } from "@common/frp/Cell";
-import {
-    Building,
-    BuildingPrototype,
-    BuildingState,
-    CompleteHabitat,
-    IncompleteBuilding
-} from "@common/game/buildings";
+import { Building, BuildingPrototype, BuildingState, IncompleteBuilding } from "@common/game/buildings";
 import { HexCoord } from "@common/game/game";
+import { ReactiveSet } from "@common/frp/ReactiveSet";
 
 interface MyEvent {
     readonly data: any;
@@ -112,12 +107,25 @@ export function readObjectCellProperty<V extends Value>(
 
 export function readObject(
     networkObject: NetworkObject,
-    keys: ReadonlyArray<string>,
 ): { [key: string]: NetworkObject } {
+    const initialDict = networkObject.initialState as Dict;
+    const keys = Object.keys(initialDict);
     return Object.fromEntries(keys.map((key) => [
         key,
         readObjectProperty(networkObject, key),
     ]));
+}
+
+export function readNetworkObjectSet(
+    netObj: NetworkObject,
+): ReadonlySet<NetworkObject> {
+    return new Set([...Object.values(readObject(netObj))]);
+}
+
+export function readNetworkObjectReactiveSet(
+    netObj: NetworkObject,
+): ReactiveSet<NetworkObject> {
+    return ReactiveSet.fromC(readNetworkObjectCell(netObj).map(readNetworkObjectSet));
 }
 
 export function spyNetworkObject(netObj: NetworkObject): void {

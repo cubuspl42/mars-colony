@@ -10,6 +10,9 @@
     "sourceMap": true,
     "outDir": "dist",
     "experimentalDecorators": true,
+    "lib": [
+      "es2019",
+    ],
     "baseUrl": "..",
     "paths": {
       "*": [

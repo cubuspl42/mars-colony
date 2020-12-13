@@ -4,10 +4,6 @@ import { Game } from "@common/game/game";
 import { dumpGame, ServerGame } from "./game/game";
 import { NetworkObject } from "@common/game/network";
 
-function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function writeEvent(
     res: ServerResponse,
     eventData: any,

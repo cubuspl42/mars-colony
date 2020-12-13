@@ -10,7 +10,7 @@ import {
     IncompleteBuilding
 } from "@common/game/buildings";
 import { Game, HexCoord } from "@common/game/game";
-import { periodic } from "@common/utils";
+import { periodic, sleep } from "@common/utils";
 import { NetworkMessage, NetworkObject, Value } from "@common/game/network";
 import * as _ from "lodash";
 
@@ -68,6 +68,21 @@ function dumpObject(
     }
 }
 
+interface NetworkObjectEntry {
+    readonly id: string;
+    readonly element: NetworkObject;
+}
+
+function dumpNetworkObjectSet<A>(rs: ReadonlySet<NetworkObjectEntry>): NetworkObject {
+    return dumpObject(Object.fromEntries([...rs].map(
+        (e) => [e.id, e.element]),
+    ));
+}
+
+export function dumpNetworkObjectReactiveSet<A>(rs: ReactiveSet<NetworkObjectEntry>): NetworkObject {
+    return dumpNetworkObjectCell(rs.asCell().map(dumpNetworkObjectSet));
+}
+
 export function dumpBuildingState(buildingState: BuildingState): NetworkObject {
     const dumpCompleteBuilding = () => ({
         "state": dumpValue("complete"),
@@ -113,11 +128,15 @@ export function dumpBuilding(building: Building): NetworkObject {
 }
 
 export function dumpGame(game: Game): NetworkObject {
-    const buildings = game.buildings.asCell().value;
-    const singleBuilding = Sets.single(buildings);
     return dumpObject({
         "counter": dumpCell(game.counter as Cell<Value>),
-        "building": dumpBuilding(singleBuilding)
+        "buildings": dumpNetworkObjectReactiveSet(game.buildings.map((b) => {
+            const coord = b.coord;
+            return <NetworkObjectEntry>{
+                id: `${coord.i}:${coord.j}`,
+                element: dumpBuilding(b),
+            };
+        })),
     });
 }
 
@@ -172,6 +191,21 @@ export class ServerGame extends Game {
         this.ironAmount = ironAmount;
         this.counter = counter;
 
-        this.placeBuilding({ i: 1, j: 2 }, BuildingPrototype.mineshaft);
+        const start = async () => {
+            await sleep(3000);
+
+            this.placeBuilding({ i: 1, j: 2 }, BuildingPrototype.mineshaft);
+
+            await sleep(2000);
+
+            this.placeBuilding({ i: -2, j: -2 }, BuildingPrototype.habitat);
+
+            await sleep(2000);
+
+            this.placeBuilding({ i: -2, j: 4 }, BuildingPrototype.mineshaft);
+        };
+
+        start().then(_ => {
+        });
     }
 }
