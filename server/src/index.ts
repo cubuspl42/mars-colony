@@ -1,8 +1,9 @@
 import * as http from "http";
 import { IncomingMessage, ServerResponse } from "http";
 import { Game } from "@common/game/game";
-import { dumpGame, ServerGame } from "./game/game";
+import { ServerGame } from "./game/game";
 import { NetworkObject } from "@common/game/network";
+import { dumpGame } from "./game/network";
 
 function writeEvent(
     res: ServerResponse,

@@ -1,7 +1,7 @@
 import { Cell, Const } from "@common/frp/Cell";
 import { Game, HexCoord } from "@common/game/game";
 import { Building, BuildingPrototype } from "@common/game/buildings";
-import { MutableReactiveSet, ReactiveSet } from "@common/frp/ReactiveSet";
+import { ReactiveSet } from "@common/frp/ReactiveSet";
 import { NetworkObject } from "@common/game/network";
 import {
     readBuilding,
@@ -20,7 +20,6 @@ export class ClientGame extends Game {
     readonly ironAmount: Cell<number>;
 
     readonly counter: Cell<number>;
-
 
     placeBuilding(coord: HexCoord, buildingPrototype: BuildingPrototype): void {
 
