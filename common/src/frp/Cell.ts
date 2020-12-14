@@ -207,7 +207,10 @@ export class CellSwitchC<A> extends CellStream<A> {
 
     unlink(): void {
         this._subInner?.cancel();
+        this._subInner = undefined;
+
         this._subOuter?.cancel();
+        this._subInner = undefined;
     }
 }
 
@@ -223,6 +226,7 @@ export class CellSwitchS<A> extends Stream<A> {
     link(): void {
         const listenInner = (inner: Stream<A>): void => {
             this._subInner?.cancel();
+
             this._subInner = inner.listen((a) => {
                 this.notify(a);
             });
@@ -237,7 +241,10 @@ export class CellSwitchS<A> extends Stream<A> {
 
     unlink(): void {
         this._subInner?.cancel();
+        this._subInner = undefined;
+
         this._subOuter?.cancel();
+        this._subInner = undefined;
     }
 }
 

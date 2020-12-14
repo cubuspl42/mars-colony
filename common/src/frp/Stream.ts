@@ -27,7 +27,7 @@ export abstract class Stream<A> {
         const wasThere = this._listeners.delete(h);
 
         if (!wasThere) {
-            throw new Error();
+            throw new Error("Attempted to remove a listener that wasn't present");
         }
 
         if (wasThere && this._listeners.size === 0) {
@@ -38,9 +38,16 @@ export abstract class Stream<A> {
     listen(h: (a: A) => void): StreamSubscription {
         this.addListener(h);
 
+        let isCanceled = false;
+
         return {
             cancel: () => {
-                this.removeListener(h);
+                if (isCanceled) {
+                    throw new Error("Attempted to re-cancel StreamSubscription");
+                } else {
+                    isCanceled = true;
+                    this.removeListener(h);
+                }
             }
         };
     }

@@ -5,6 +5,8 @@ import { ServerGame } from "./game/game";
 import { NetworkObject, readBuildingPrototype, readHexCoord } from "@common/game/network";
 import { dumpGame } from "./game/network";
 
+Error.stackTraceLimit = 128;
+
 function readData(req: IncomingMessage): Promise<string> {
     return new Promise((resolve) => {
         let body = '';

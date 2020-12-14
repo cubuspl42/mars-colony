@@ -38,17 +38,26 @@ export class ClientGame extends Game {
 
         const { client, worldNetworkObject } = args;
 
-        const counterNetObj = readObjectProperty(worldNetworkObject, "counter");
 
         const buildingsProp = readObjectProperty(worldNetworkObject, "buildings");
 
         const buildings = readNetworkObjectReactiveSet(buildingsProp).map(readBuilding);
 
-        const counter = readCell<number>(counterNetObj);
+        const counterProp = readObjectProperty(worldNetworkObject, "counter");
+
+        const counter = readCell<number>(counterProp);
+
+        const xpCountProp = readObjectProperty(worldNetworkObject, "xpCount");
+
+        const xpCount = readCell<number>(xpCountProp);
+
+        const ironAmountProp = readObjectProperty(worldNetworkObject, "ironAmount");
+
+        const ironAmount = readCell<number>(ironAmountProp);
 
         this._client = client;
-        this.xpCount = new Const(0);
-        this.ironAmount = new Const(0);
+        this.xpCount = xpCount;
+        this.ironAmount = ironAmount;
         this.counter = counter;
         this.buildings = buildings;
     }

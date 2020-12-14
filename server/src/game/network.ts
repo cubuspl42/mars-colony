@@ -119,5 +119,16 @@ export function dumpGame(game: Game): NetworkObject {
                 element: dumpBuilding(b),
             };
         })),
+        "xpCount": dumpCell(game.xpCount as Cell<Value>),
+        "ironAmount": dumpCell(game.ironAmount as Cell<Value>),
     });
 }
+
+function foo(arr: ReadonlyArray<number | string>) {
+
+}
+
+function bar(arr: ReadonlyArray<number>) {
+    foo(arr);
+}
+
