@@ -1,15 +1,9 @@
-import { NetworkMessage, NetworkObject, Value } from "@common/game/network";
+import { dumpBuildingPrototype, NetworkMessage, NetworkObject, Value } from "@common/game/network";
 import { Stream } from "@common/frp/Stream";
 import { Cell } from "@common/frp/Cell";
 import * as _ from "lodash";
 import { ReactiveSet } from "@common/frp/ReactiveSet";
-import {
-    Building,
-    BuildingPrototype,
-    BuildingState,
-    CompleteBuilding,
-    IncompleteBuilding
-} from "@common/game/buildings";
+import { Building, BuildingState, CompleteBuilding, IncompleteBuilding } from "@common/game/buildings";
 import { Game } from "@common/game/game";
 
 function dumpValue<A>(v: Value): NetworkObject {
@@ -105,18 +99,8 @@ export function dumpBuildingState(buildingState: BuildingState): NetworkObject {
 }
 
 export function dumpBuilding(building: Building): NetworkObject {
-    const dumpType = () => {
-        if (building.prototype === BuildingPrototype.habitat) {
-            return "Habitat";
-        } else if (building.prototype === BuildingPrototype.mineshaft) {
-            return "Mineshaft";
-        } else {
-            throw new Error(`Unrecognized building prototype`);
-        }
-    }
-
     return dumpObject({
-        "type": dumpValue(dumpType()),
+        "type": dumpValue(dumpBuildingPrototype(building.prototype)),
         "coord": dumpValue({
             "i": building.coord.i,
             "j": building.coord.j,

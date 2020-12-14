@@ -155,9 +155,9 @@ export function createHexGridCanvas(args: {
     document.body.addEventListener('keydown', (e) => {
         const coord = selectedHexCoord.value;
         if (e.key === "a") {
-            game.placeBuilding(coord, BuildingPrototype.habitat);
+            game.placeBuilding({coord, prototype: BuildingPrototype.habitat});
         } else if (e.key === "b") {
-            game.placeBuilding(coord, BuildingPrototype.mineshaft);
+            game.placeBuilding({coord, prototype: BuildingPrototype.mineshaft});
         }
     });
 

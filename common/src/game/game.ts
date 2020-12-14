@@ -20,7 +20,10 @@ export abstract class Game {
 
     abstract get buildings(): ReactiveSet<Building>;
 
-    abstract placeBuilding(coord: HexCoord, buildingPrototype: BuildingPrototype): void;
+    abstract placeBuilding(args: {
+        readonly coord: HexCoord,
+        readonly prototype: BuildingPrototype,
+    }): void;
 
     getBuildingAt(coord: HexCoord): Cell<Building | undefined> {
         return this.buildings.singleWhere(

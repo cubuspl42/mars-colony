@@ -1,9 +1,28 @@
 import * as http from "http";
-import { IncomingMessage, ServerResponse } from "http";
+import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "http";
 import { Game } from "@common/game/game";
 import { ServerGame } from "./game/game";
-import { NetworkObject } from "@common/game/network";
+import { NetworkObject, readBuildingPrototype, readHexCoord } from "@common/game/network";
 import { dumpGame } from "./game/network";
+
+function readData(req: IncomingMessage): Promise<string> {
+    return new Promise((resolve) => {
+        let body = '';
+
+        req.on('data', chunk => {
+            body += chunk.toString();
+        });
+
+        req.on('end', () => {
+            resolve(body);
+        });
+    });
+}
+
+async function readJsonData(req: IncomingMessage): Promise<any> {
+    const rawData = await readData(req);
+    return JSON.parse(rawData);
+}
 
 function writeEvent(
     res: ServerResponse,
@@ -36,23 +55,40 @@ function writeRootNetworkObject(
 }
 
 function startGameServer(game: Game): void {
-    const handleWorldReq = async (req: IncomingMessage, res: ServerResponse) => {
+    const resHeaders = <OutgoingHttpHeaders>{
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, PUT',
+        'Cache-Control': 'no-cache',
+    }
+
+    const handleGetWorld = async (req: IncomingMessage, res: ServerResponse) => {
         res.writeHead(200, {
+            ...resHeaders,
             'Content-Type': 'text/event-stream',
-            'Access-Control-Allow-Origin': '*',
-            'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
         });
 
         writeRootNetworkObject(req, res, dumpGame(game));
     }
 
-    const server = http.createServer(async (req, res) => {
-        console.log(`New connection: ${req.url}`);
-        if (req.url === '/world' && req.method === "GET") {
-            await handleWorldReq(req, res);
-        } else if (req.url === '/world/buildings' && req.method === "PUT") {
+    const handlePutBuilding = async (req: IncomingMessage, res: ServerResponse) => {
+        const data = await readJsonData(req);
 
+        const coord = readHexCoord(data["coord"]);
+        const prototype = readBuildingPrototype(data["type"]);
+
+        game.placeBuilding({ coord, prototype });
+
+        res.writeHead(200, resHeaders);
+        res.end("");
+    }
+
+    const server = http.createServer(async (req, res) => {
+        console.log(`New request: ${req.url} (${req.method})`);
+        if (req.url === '/world' && req.method === "GET") {
+            await handleGetWorld(req, res);
+        } else if (req.url === '/world/buildings' && req.method === "POST") {
+            await handlePutBuilding(req, res);
         }
     });
 

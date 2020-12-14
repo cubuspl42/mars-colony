@@ -19,14 +19,14 @@ export class ServerGame extends Game {
         return this._buildings;
     }
 
-    placeBuilding(coord: HexCoord, buildingPrototype: BuildingPrototype): void {
-        const existingBuilding = this.getBuildingAt(coord).value;
+    placeBuilding(args: {
+        readonly coord: HexCoord,
+        readonly prototype: BuildingPrototype,
+    }): void {
+        const existingBuilding = this.getBuildingAt(args.coord).value;
 
         if (existingBuilding === undefined) {
-            this._buildings.add(Building.$create({
-                coord,
-                prototype: buildingPrototype,
-            }));
+            this._buildings.add(Building.$create(args));
         }
     }
 
@@ -60,15 +60,15 @@ export class ServerGame extends Game {
         const start = async () => {
             await sleep(3000);
 
-            this.placeBuilding({ i: 1, j: 2 }, BuildingPrototype.mineshaft);
+            this.placeBuilding({ coord: { i: 1, j: 2 }, prototype: BuildingPrototype.mineshaft });
 
             await sleep(2000);
 
-            this.placeBuilding({ i: -2, j: -2 }, BuildingPrototype.habitat);
+            this.placeBuilding({ coord: { i: -2, j: -2 }, prototype: BuildingPrototype.habitat });
 
             await sleep(2000);
 
-            this.placeBuilding({ i: -2, j: 4 }, BuildingPrototype.mineshaft);
+            this.placeBuilding({ coord: { i: -2, j: 4 }, prototype: BuildingPrototype.mineshaft });
         };
 
         start().then(_ => {

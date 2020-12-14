@@ -1,9 +1,38 @@
 import { Stream, StreamSink } from "@common/frp/Stream";
-import { Dict, NetworkMessage, NetworkObject, Value } from "@common/game/network";
+import {
+    Dict,
+    dumpBuildingPrototype,
+    NetworkMessage,
+    NetworkObject,
+    readBuildingPrototype,
+    readHexCoord,
+    Value
+} from "@common/game/network";
 import { Cell } from "@common/frp/Cell";
 import { Building, BuildingPrototype, BuildingState, IncompleteBuilding } from "@common/game/buildings";
 import { HexCoord } from "@common/game/game";
 import { ReactiveSet } from "@common/frp/ReactiveSet";
+
+export class GameProtocolClient {
+    private static readonly hostname = "//localhost:8080";
+
+    getWorld(): Promise<NetworkObject> {
+        return readRootNetworkObject(`${GameProtocolClient.hostname}/world`);
+    }
+
+    putBuilding(args: {
+        readonly coord: HexCoord,
+        readonly prototype: BuildingPrototype,
+    }): void {
+        fetch(`${GameProtocolClient.hostname}/world/buildings`, {
+            method: "POST",
+            body: JSON.stringify({
+                type: dumpBuildingPrototype(args.prototype),
+                coord: args.coord,
+            }),
+        }).then();
+    }
+}
 
 interface MyEvent {
     readonly data: any;
@@ -135,23 +164,6 @@ export function spyNetworkObject(netObj: NetworkObject): void {
     });
 }
 
-function readHexCoord(value: Value) {
-
-}
-
-function readBuildingPrototype(
-    type: string,
-): BuildingPrototype {
-    switch (type) {
-        case "Habitat":
-            return BuildingPrototype.habitat;
-        case "Mineshaft":
-            return BuildingPrototype.mineshaft;
-        default:
-            throw new Error(`Unrecognized building type: ${type}`);
-    }
-}
-
 function readBuildingState(
     prototype: BuildingPrototype,
     stateNetObj: NetworkObject,
@@ -179,7 +191,7 @@ export function readBuilding(
 ): Building {
     const initialDict = buildingNetObj.initialState as Dict;
     const prototype = readBuildingPrototype(initialDict["type"] as string);
-    const coord = initialDict["coord"] as unknown as HexCoord;
+    const coord = readHexCoord(initialDict["coord"]);
     const stateProp = readObjectProperty(buildingNetObj, "state");
     const state = readNetworkObjectCell(stateProp).map((netObj) =>
         readBuildingState(prototype, netObj),

@@ -4,15 +4,17 @@ import { Building, BuildingPrototype } from "@common/game/buildings";
 import { ReactiveSet } from "@common/frp/ReactiveSet";
 import { NetworkObject } from "@common/game/network";
 import {
+    GameProtocolClient,
     readBuilding,
     readCell,
     readNetworkObjectReactiveSet,
     readObjectProperty,
-    readRootNetworkObject,
 } from "./network";
 
 
 export class ClientGame extends Game {
+    private readonly _client: GameProtocolClient;
+
     readonly buildings: ReactiveSet<Building>;
 
     readonly xpCount: Cell<number>;
@@ -21,25 +23,30 @@ export class ClientGame extends Game {
 
     readonly counter: Cell<number>;
 
-    placeBuilding(coord: HexCoord, buildingPrototype: BuildingPrototype): void {
-
+    placeBuilding(args: {
+        readonly coord: HexCoord,
+        readonly prototype: BuildingPrototype,
+    }): void {
+        this._client.putBuilding(args);
     }
 
     private constructor(args: {
-        readonly rootNetworkObject: NetworkObject,
+        readonly client: GameProtocolClient,
+        readonly worldNetworkObject: NetworkObject,
     }) {
         super();
 
-        const { rootNetworkObject } = args;
+        const { client, worldNetworkObject } = args;
 
-        const counterNetObj = readObjectProperty(rootNetworkObject, "counter");
+        const counterNetObj = readObjectProperty(worldNetworkObject, "counter");
 
-        const buildingsProp = readObjectProperty(rootNetworkObject, "buildings");
+        const buildingsProp = readObjectProperty(worldNetworkObject, "buildings");
 
         const buildings = readNetworkObjectReactiveSet(buildingsProp).map(readBuilding);
 
         const counter = readCell<number>(counterNetObj);
 
+        this._client = client;
         this.xpCount = new Const(0);
         this.ironAmount = new Const(0);
         this.counter = counter;
@@ -47,10 +54,13 @@ export class ClientGame extends Game {
     }
 
     static async connect(): Promise<Game> {
-        const rootNetObj = await readRootNetworkObject("//localhost:8080/world");
+        const client = new GameProtocolClient();
+
+        const worldNetworkObject = await client.getWorld();
 
         return new ClientGame({
-            rootNetworkObject: rootNetObj,
+            client,
+            worldNetworkObject,
         });
     }
 }
