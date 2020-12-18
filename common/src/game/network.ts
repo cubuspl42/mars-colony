@@ -16,6 +16,11 @@ export interface NetworkObject {
     readonly sUpdates?: Stream<NetworkMessage>;
 }
 
+export interface Credentials {
+    readonly username: string;
+    readonly password: string;
+}
+
 export function dumpBuildingPrototype(prototype: BuildingPrototype): string {
     if (prototype === BuildingPrototype.habitat) {
         return "Habitat";

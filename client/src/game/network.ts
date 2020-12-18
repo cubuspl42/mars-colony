@@ -1,5 +1,6 @@
 import { Stream, StreamSink } from "@common/frp/Stream";
 import {
+    Credentials,
     Dict,
     dumpBuildingPrototype,
     NetworkMessage,
@@ -12,19 +13,48 @@ import { Cell } from "@common/frp/Cell";
 import { Building, BuildingPrototype, BuildingState, IncompleteBuilding } from "@common/game/buildings";
 import { HexCoord } from "@common/game/game";
 import { ReactiveSet } from "@common/frp/ReactiveSet";
+import { StatusCodes as HttpStatus, } from 'http-status-codes';
 
-export class GameProtocolClient {
-    private static readonly hostname = "//localhost:8080";
+export enum SignInError {
+    INCORRECT_CREDENTIALS,
+    UNKNOWN_ERROR
+}
+
+export class BackendClient {
+    static readonly hostname = "//localhost:8080";
+
+    async signIn(credentials: Credentials): Promise<SignInError | GameClient> {
+        console.log("signIn.");
+        const response = await fetch(`${BackendClient.hostname}/verify-credentials`, {
+            method: "POST",
+            body: JSON.stringify(credentials),
+        });
+        if (response.status === HttpStatus.OK) {
+            return new GameClient(credentials);
+        } else if (response.status === HttpStatus.FORBIDDEN) {
+            return SignInError.INCORRECT_CREDENTIALS;
+        } else {
+            return SignInError.UNKNOWN_ERROR;
+        }
+    }
+}
+
+export class GameClient {
+
+    constructor(
+        private readonly credentials: Credentials,
+    ) {
+    }
 
     getWorld(): Promise<NetworkObject> {
-        return readRootNetworkObject(`${GameProtocolClient.hostname}/world`);
+        return readRootNetworkObject(`${BackendClient.hostname}/world`);
     }
 
     putBuilding(args: {
         readonly coord: HexCoord,
         readonly prototype: BuildingPrototype,
     }): void {
-        fetch(`${GameProtocolClient.hostname}/world/buildings`, {
+        fetch(`${BackendClient.hostname}/world/buildings`, {
             method: "POST",
             body: JSON.stringify({
                 type: dumpBuildingPrototype(args.prototype),

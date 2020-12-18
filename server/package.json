@@ -5,6 +5,7 @@
     "start": "ts-node -r tsconfig-paths/register src/index.ts"
   },
   "dependencies": {
+    "http-status-codes": "^2.1.4",
     "lodash": "^4.17.20"
   },
   "devDependencies": {

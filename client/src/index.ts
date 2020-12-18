@@ -1,19 +1,26 @@
-import { MutableCell } from "@common/frp/Cell";
+import { Cell, CellLoop, Const, MutableCell } from "@common/frp/Cell";
 import { createHexGridCanvas } from "./drawing";
 import { Game, HexCoord } from "@common/game/game";
 import { createBuildingGroup } from "./buildings_group";
 import { createHudElement } from "./hud";
 import { ClientGame } from "./game/game";
-import { Stream, StreamSink } from "@common/frp/Stream";
+import { SimpleStream, Stream, StreamSink } from "@common/frp/Stream";
+import { BackendClient, GameClient, SignInError } from "./game/network";
+import { linkElement } from "./dom";
 
 interface ButtonElement {
     readonly element: HTMLElement;
     readonly onPressed: Stream<null>;
 }
 
+interface LoginViewElement {
+    readonly element: HTMLElement;
+    readonly sGame: Stream<Game>;
+}
+
 function createElement<K extends keyof HTMLElementTagNameMap>(
     tagName: K,
-    args: {
+    args?: {
         readonly init?: (style: CSSStyleDeclaration, element: HTMLElementTagNameMap[K]) => void,
         readonly children?: ReadonlyArray<Node>,
     },
@@ -61,16 +68,90 @@ function createButtonElement(args: {
     };
 }
 
-enum LoginState {
-    IDLE,
-    LOGGING_IN,
+type LoginState = null | Promise<SignInError | Game>;
+
+interface TextInputElement {
+    readonly element: HTMLElement;
+    readonly cText: Cell<string>;
 }
 
-enum LoginError {
-    INCORRECT_USERNAME_PASSWORD,
-}
+// class HtmlEventStream<A> extends SimpleStream<A> {
+//     readonly _listen: () => ;
+//
+//     link(): void {
+//     }
+//
+//     unlink(): void {
+//     }
+// }
+//
+// function createEventStream(element: HTMLElement) {
+//     element.addEventListener()
+// }
 
-function createLoginView(): HTMLElement {
+const createLabeledTextInput = (args: {
+    readonly labelTex: string,
+}) => {
+    const element = createElement("div", {
+        init: (style, element) => {
+            style.width = "100%";
+            style.display = "flex";
+            style.flexDirection = "column";
+            style.marginBottom = `10px`;
+        },
+        children: [
+            createElement("label", {
+                init: (style, element) => {
+                    element.innerText = args.labelTex;
+                    style.marginBottom = `5px`;
+                },
+            }),
+            createElement("input", {
+                init: (style, element) => {
+                    element.type = "text";
+                },
+            }),
+        ],
+    });
+
+    const cText = new Const("");
+
+    return <TextInputElement>{
+        element,
+        cText,
+    };
+};
+
+function createLoginView(backendClient: BackendClient): LoginViewElement {
+    const usernameTextInput = createLabeledTextInput({
+        labelTex: "Username",
+    });
+
+    const passwordTextInput = createLabeledTextInput({
+        labelTex: "Password",
+    });
+
+    async function signIn(): Promise<SignInError | Game> {
+        console.log("signIn");
+
+        const result = await backendClient.signIn({
+            username: "kuba",
+            password: "123456",
+        });
+
+        if (!(result instanceof GameClient)) {
+            return result;
+        }
+
+        const game = await ClientGame.connect(result);
+
+        return game;
+    }
+
+    const cLoginStateLoop = new CellLoop<LoginState>();
+
+    // const  sSignInErrorLoop = new CellLoop<SignInError>();
+
     const submitButton = createButtonElement({
         init: (style, element) => {
             style.marginTop = "10px";
@@ -79,38 +160,58 @@ function createLoginView(): HTMLElement {
         text: "Sign in!",
     });
 
-    const state = new MutableCell(LoginState.IDLE);
+    // const sSignInError_: Stream<SignInError> = Stream.never();
+
+    const sSignInResult = Cell.switchNotNullP(cLoginStateLoop);
+
+    const sSignInError = sSignInResult.mapNotUndefined(
+        (r) => r instanceof Game ? undefined : r,
+    );
+
+    const cSignInError = (sSignInError as Stream<SignInError | null>).hold(null);
 
 
+    const sGame = sSignInResult.whereInstanceof(Game);
 
-    const error = new MutableCell<LoginError | undefined>(undefined);
 
-    const createLabeledTextInput = (args: {
-        readonly labelTex: string,
-    }) =>
-        createElement("div", {
-            init: (style, element) => {
-                style.width = "100%";
-                style.display = "flex";
-                style.flexDirection = "column";
-                style.marginBottom = `10px`;
-            },
-            children: [
-                createElement("label", {
-                    init: (style, element) => {
-                        element.innerText = args.labelTex;
-                        style.marginBottom = `5px`;
-                    },
-                }),
-                createElement("input", {
-                    init: (style, element) => {
-                        element.type = "text";
-                    },
-                }),
-            ],
-        });
+    const cLoginState = submitButton.onPressed
+        .map<LoginState>(() => signIn())
+        .mergeWith(sSignInError.mapTo<LoginState>(null))
+        .hold(null);
 
-    return createElement("div", {
+    cLoginStateLoop.loop(cLoginState);
+
+    // const x = cSignInResult.switchMapS()
+
+    // const state = new MutableCell(LoginState.IDLE);
+
+
+    // const error = new MutableCell<LoginError | undefined>(undefined);
+
+
+    const createErrorLabel = (): HTMLElement => {
+        const element = createElement("div");
+
+        const cErrorText = cSignInError.map((err) => {
+            if (err === null) {
+                return "";
+            } else {
+                switch (err) {
+                    case SignInError.INCORRECT_CREDENTIALS:
+                        return "Incorrect credentials";
+                    case SignInError.UNKNOWN_ERROR:
+                        return "Unknown sign-in error";
+                }
+            }
+        }).map((s) => document.createTextNode(s));
+
+        linkElement(cErrorText, element);
+
+        return element;
+    }
+
+
+    const element = createElement("div", {
         init: (style, element) => {
             style.width = "100vw";
             style.height = "100vh";
@@ -134,29 +235,19 @@ function createLoginView(): HTMLElement {
                     style.alignItems = "center";
                 },
                 children: [
-                    createLabeledTextInput({
-                        labelTex: "Username",
-                    }),
-                    createLabeledTextInput({
-                        labelTex: "Password",
-                    }),
-                    createElement("button", {
-                        init: (style, element) => {
-                            element.innerText = "Log in";
-
-                            element.onclick = () => {
-
-                            };
-
-                            style.marginTop = "10px";
-                            style.padding = "10px";
-                        }
-                    }),
+                    usernameTextInput.element,
+                    passwordTextInput.element,
                     submitButton.element,
+                    createErrorLabel(),
                 ]
             }),
         ]
     });
+
+    return {
+        element,
+        sGame: sGame,
+    }
 }
 
 function createGameView(game: Game): HTMLElement {
@@ -193,13 +284,13 @@ function createGameView(game: Game): HTMLElement {
 }
 
 async function main() {
-    const loginView = createLoginView();
+    const loginView = createLoginView(new BackendClient());
 
-    const game = await ClientGame.connect();
+    const cRoot = loginView.sGame
+        .map(createGameView)
+        .hold(loginView.element);
 
-    const gameView = createGameView(game);
-
-    document.body.appendChild(loginView);
+    linkElement(cRoot, document.body);
 }
 
 main();

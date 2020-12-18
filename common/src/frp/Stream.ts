@@ -1,10 +1,101 @@
-import { Cell, StreamAccum, StreamHold } from "./Cell";
+import { Cell, SimpleCell, StreamAccum, StreamHold } from "./Cell";
 
 export interface StreamSubscription {
     cancel(): void;
 }
 
+type Constructor<T> = Function & { prototype: T }
+
 export abstract class Stream<A> {
+    // Operational bits
+
+    // abstract link(): void;
+    //
+    // abstract unlink(): void;
+
+    abstract addListener(h: (a: A) => void): void;
+
+    abstract removeListener(h: (a: A) => void): void;
+
+    abstract listen(h: (a: A) => void): StreamSubscription;
+
+    // Operators
+
+    static never<A>(): Stream<A> {
+        return new StreamNever();
+    }
+
+    static looped<A>(f: (self: Stream<A>) => Stream<A>) {
+        const loop = new StreamLoop<A>();
+        const sa = f(loop);
+        loop.loop(sa);
+        return sa;
+    }
+
+    static fromPromise<A>(promise: Promise<A>): Stream<A> {
+        const sink = new StreamSink<A>();
+
+        promise.then((a) => {
+            sink.send(a);
+        });
+
+        return sink;
+    }
+
+    static whereNotUndefined<A>(sa: Stream<A | undefined>): Stream<A> {
+        return sa.where((a) => a !== undefined).map((a) => a as A);
+    }
+
+    map<B>(f: (a: A) => B): Stream<B> {
+        return new StreamMap(this, f);
+    }
+
+    mapNotUndefined<B>(f: (a: A) => B | undefined): Stream<B> {
+        return Stream.whereNotUndefined(this.map(f));
+    }
+
+    mapTo<B>(b: B): Stream<B> {
+        return this.map(() => b);
+    }
+
+    where(predicate: (a: A) => boolean): Stream<A> {
+        return new StreamWhere(this, predicate);
+    }
+
+    // whereInstanceof<A2 extends A>(A2_: { new(...args: any[]): A2 }): Stream<A2> {
+    whereInstanceof<A2 extends A>(A2_: Constructor<A2>): Stream<A2> {
+        return this.where((a) => a instanceof A2_)
+            .map<A2>((a) => a as A2);
+    }
+
+    mergeWith(sa: Stream<A>): Stream<A> {
+        return Stream.mergeSet(new Set([this, sa]));
+    }
+
+    static mergeSet<A>(s: ReadonlySet<Stream<A>>): Stream<A> {
+        return new StreamMergeSet(s);
+    }
+
+    static accumSum(sa: Stream<number>, initValue: number = 0): Cell<number> {
+        return sa.accum(initValue, (acc, a) => acc + a);
+    }
+
+    hold(initValue: A): Cell<A> {
+        return new SimpleCell(new StreamHold(initValue, this));
+    }
+
+    accum<B>(initValue: B, f: (acc: B, a: A) => B): Cell<B> {
+        return new SimpleCell(new StreamAccum(initValue, this, f));
+    }
+
+    next(): Promise<A> {
+        return new Promise((resolve) => {
+            this.addListener(resolve);
+        });
+    }
+}
+
+export abstract class SimpleStream<A> extends Stream<A> {
     // Operational bits
 
     private readonly _listeners = new Set<(a: A) => void>();
@@ -61,60 +152,10 @@ export abstract class Stream<A> {
     protected refCount(): number {
         return this._listeners.size;
     }
-
-    // Operators
-
-    static never<A>(): Stream<A> {
-        return new StreamNever();
-    }
-
-    static looped<A>(f: (self: Stream<A>) => Stream<A>) {
-        const loop = new StreamLoop<A>();
-        const sa = f(loop);
-        loop.loop(sa);
-        return sa;
-    }
-
-    map<B>(f: (a: A) => B): Stream<B> {
-        return new StreamMap(this, f);
-    }
-
-    mapTo<B>(b: B): Stream<B> {
-        return this.map(() => b);
-    }
-
-    where(predicate: (a: A) => boolean): Stream<A> {
-        return new StreamWhere(this, predicate);
-    }
-
-    mergeWith(sa: Stream<A>): Stream<A> {
-        return Stream.mergeSet(new Set([this, sa]));
-    }
-
-    static mergeSet<A>(s: ReadonlySet<Stream<A>>): Stream<A> {
-        return new StreamMergeSet(s);
-    }
-
-    static accumSum(sa: Stream<number>, initValue: number = 0): Cell<number> {
-        return sa.accum(initValue, (acc, a) => acc + a);
-    }
-
-    hold(initValue: A): Cell<A> {
-        return new Cell(new StreamHold(initValue, this));
-    }
-
-    accum<B>(initValue: B, f: (acc: B, a: A) => B): Cell<B> {
-        return new Cell(new StreamAccum(initValue, this, f));
-    }
-
-    next(): Promise<A> {
-        return new Promise((resolve) => {
-            this.addListener(resolve);
-        });
-    }
 }
 
-export class StreamLoop<A> extends Stream<A> {
+
+export class StreamLoop<A> extends SimpleStream<A> {
     private _source?: Stream<A>;
 
     private _sub?: StreamSubscription;
@@ -142,7 +183,7 @@ export class StreamLoop<A> extends Stream<A> {
     }
 }
 
-export class StreamNever<A> extends Stream<A> {
+export class StreamNever<A> extends SimpleStream<A> {
     link(): void {
 
     }
@@ -151,7 +192,7 @@ export class StreamNever<A> extends Stream<A> {
     }
 }
 
-export class StreamMap<A, B> extends Stream<B> {
+export class StreamMap<A, B> extends SimpleStream<B> {
     private _sub?: StreamSubscription;
 
     constructor(
@@ -173,7 +214,7 @@ export class StreamMap<A, B> extends Stream<B> {
     }
 }
 
-export class StreamWhere<A> extends Stream<A> {
+export class StreamWhere<A> extends SimpleStream<A> {
     private _sub?: StreamSubscription;
 
     constructor(
@@ -197,7 +238,7 @@ export class StreamWhere<A> extends Stream<A> {
     }
 }
 
-export class StreamMergeSet<A> extends Stream<A> {
+export class StreamMergeSet<A> extends SimpleStream<A> {
     private _subs?: ReadonlyArray<StreamSubscription>;
 
     constructor(
@@ -219,7 +260,7 @@ export class StreamMergeSet<A> extends Stream<A> {
     }
 }
 
-export class StreamSink<A> extends Stream<A> {
+export class StreamSink<A> extends SimpleStream<A> {
     send(a: A): void {
         this.notify(a);
     }

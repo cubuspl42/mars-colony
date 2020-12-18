@@ -4,7 +4,7 @@ import { Building, BuildingPrototype } from "@common/game/buildings";
 import { ReactiveSet } from "@common/frp/ReactiveSet";
 import { NetworkObject } from "@common/game/network";
 import {
-    GameProtocolClient,
+    GameClient,
     readBuilding,
     readCell,
     readNetworkObjectReactiveSet,
@@ -13,7 +13,7 @@ import {
 
 
 export class ClientGame extends Game {
-    private readonly _client: GameProtocolClient;
+    private readonly _client: GameClient;
 
     readonly buildings: ReactiveSet<Building>;
 
@@ -31,7 +31,7 @@ export class ClientGame extends Game {
     }
 
     private constructor(args: {
-        readonly client: GameProtocolClient,
+        readonly client: GameClient,
         readonly worldNetworkObject: NetworkObject,
     }) {
         super();
@@ -62,13 +62,11 @@ export class ClientGame extends Game {
         this.buildings = buildings;
     }
 
-    static async connect(): Promise<Game> {
-        const client = new GameProtocolClient();
-
-        const worldNetworkObject = await client.getWorld();
+    static async connect(gameClient: GameClient): Promise<Game> {
+        const worldNetworkObject = await gameClient.getWorld();
 
         return new ClientGame({
-            client,
+            client: gameClient,
             worldNetworkObject,
         });
     }

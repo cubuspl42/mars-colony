@@ -2,8 +2,9 @@ import * as http from "http";
 import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "http";
 import { Game } from "@common/game/game";
 import { ServerGame } from "./game/game";
-import { NetworkObject, readBuildingPrototype, readHexCoord } from "@common/game/network";
+import { Credentials, NetworkObject, readBuildingPrototype, readHexCoord } from "@common/game/network";
 import { dumpGame } from "./game/network";
+import { StatusCodes as HttpStatus, } from 'http-status-codes';
 
 Error.stackTraceLimit = 128;
 
@@ -63,6 +64,20 @@ function startGameServer(game: Game): void {
         'Cache-Control': 'no-cache',
     }
 
+    const handleVerifyCredentials = async (req: IncomingMessage, res: ServerResponse) => {
+        const data = await readJsonData(req);
+
+        const credentials = data as Credentials;
+
+        if (credentials.username === "kuba" && credentials.password === "123456") {
+            res.writeHead(HttpStatus.OK, resHeaders);
+        } else {
+            res.writeHead(HttpStatus.FORBIDDEN);
+        }
+
+        res.end();
+    }
+
     const handleGetWorld = async (req: IncomingMessage, res: ServerResponse) => {
         res.writeHead(200, {
             ...resHeaders,
@@ -87,10 +102,16 @@ function startGameServer(game: Game): void {
 
     const server = http.createServer(async (req, res) => {
         console.log(`New request: ${req.url} (${req.method})`);
-        if (req.url === '/world' && req.method === "GET") {
+
+        if (req.url === '/verify-credentials' && req.method === "POST") {
+            await handleVerifyCredentials(req, res);
+        } else if (req.url === '/world' && req.method === "GET") {
             await handleGetWorld(req, res);
         } else if (req.url === '/world/buildings' && req.method === "POST") {
             await handlePutBuilding(req, res);
+        } else {
+            res.writeHead(400, resHeaders);
+            res.end();
         }
     });
 

@@ -1,31 +1,11 @@
 import { Building, BuildingPrototype, IncompleteBuilding } from "@common/game/buildings";
-import { ReactiveSet } from "@common/frp/ReactiveSet";
 import { Cell, MutableCell } from "@common/frp/Cell";
 import { mapHexCoordToWorldPoint } from "./hex";
 import * as tm from "transformation-matrix";
 import { hexGridScaleMatrix } from "./drawing";
 import { Game } from "@common/game/game";
+import { linkElements } from "./dom";
 
-function clearChildren(element: HTMLElement) {
-    while (element.firstChild) {
-        element.removeChild(element.lastChild!);
-    }
-}
-
-function link(elements: ReactiveSet<HTMLElement>, parent: HTMLElement) {
-    const cell = elements.asCell();
-
-    const appendChildren = (children: ReadonlySet<HTMLElement>): void => {
-        children.forEach((element) => parent.appendChild(element));
-    }
-
-    appendChildren(cell.value);
-
-    cell.listen((children) => {
-        clearChildren(parent);
-        appendChildren(children);
-    });
-}
 
 function animationCell(): Cell<number> {
     const out = new MutableCell(performance.now());
@@ -127,7 +107,7 @@ export function createBuildingGroup(args: {
         return createBuildingElement({ building: b });
     });
 
-    link(elements, buildingsGroup);
+    linkElements(elements, buildingsGroup);
 
     return buildingsGroup;
 }
