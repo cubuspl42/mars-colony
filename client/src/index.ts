@@ -1,10 +1,10 @@
-import { Cell, CellLoop, Const, MutableCell } from "@common/frp/Cell";
+import { Cell, CellLoop, MutableCell, SourceCell } from "@common/frp/Cell";
 import { createHexGridCanvas } from "./drawing";
 import { Game, HexCoord } from "@common/game/game";
 import { createBuildingGroup } from "./buildings_group";
 import { createHudElement } from "./hud";
 import { ClientGame } from "./game/game";
-import { SimpleStream, SourceStream, Stream, StreamSink, StreamSubscription } from "@common/frp/Stream";
+import { SourceStream, Stream, StreamSink, StreamSubscription } from "@common/frp/Stream";
 import { BackendClient, GameClient, SignInError } from "./game/network";
 import { linkElement } from "./dom";
 
@@ -116,9 +116,10 @@ const createLabeledTextInput = (args: {
         ],
     });
 
-    // const cText = htmlEventStream()
-
-    const cText = htmlEventStream(input, "input").map(() => input.value).hold("");
+    const cText = new SourceCell(
+        htmlEventStream(input, "input").map(() => input.value),
+        () => input.value,
+    )
 
     return <TextInputElement>{
         element,
@@ -136,9 +137,12 @@ function createLoginView(backendClient: BackendClient): LoginViewElement {
     });
 
     async function signIn(): Promise<SignInError | Game> {
+        const username = usernameTextInput.cText.value;
+        const password = passwordTextInput.cText.value;
+
         const result = await backendClient.signIn({
-            username: usernameTextInput.cText.value,
-            password: passwordTextInput.cText.value,
+            username,
+            password,
         });
 
         if (!(result instanceof GameClient)) {

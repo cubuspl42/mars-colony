@@ -124,98 +124,6 @@ export class SimpleCell<A> extends Cell<A> {
     values(): Stream<A> {
         return this._self;
     }
-
-    listen(h: (a: A) => void): StreamSubscription {
-        return this.values().listen(h);
-    }
-
-    // Operators
-
-    static switchC<A>(cca: Cell<Cell<A>>): Cell<A> {
-        return new SimpleCell(new CellSwitchC(cca));
-    }
-
-    static switchS<A>(csa: Cell<Stream<A>>): Stream<A> {
-        return new CellSwitchS(csa);
-    }
-
-    static switchP<A>(csa: Cell<Promise<A>>): Stream<A> {
-        return this.switchS(csa.map(Stream.fromPromise));
-    }
-
-    static map2<A, B, C>(ca: Cell<A>, cb: Cell<B>, f: (a: A, b: B) => C): Cell<C> {
-        return ca.switchMapC((a) => cb.map((b) => f(a, b)));
-    }
-
-    static sequenceArray<A>(ac: ReadonlyArray<Cell<A>>): Cell<ReadonlyArray<A>> {
-        return new SimpleCell(new CellSequenceArray(ac));
-    }
-
-    static switchNotNullP<A>(ca: Cell<Promise<A> | null>): Stream<A> {
-        return this.switchP(ca.map((p) => p ?? promiseNever()));
-    }
-
-    static looped<A>(f: (self: Cell<A>) => Cell<A>): Cell<A> {
-        throw new Error("Unimplemented");
-    }
-
-    static looped2<A, B, R>(f: (args: {
-        readonly cellA: Cell<A>,
-        readonly cellB: Cell<B>,
-    }) => {
-        readonly cellA: Cell<A>,
-        readonly cellB: Cell<B>,
-        readonly result: R,
-    }): R {
-        throw new Error("Unimplemented");
-    }
-
-    // (switchS . map) [not undefined]
-    static switchMapNotUndefinedS<A, B>(ca: Cell<A | undefined>, f: (a: A) => Stream<B>): Stream<B> {
-        return Cell.switchS(ca.map((a) => {
-            if (a !== undefined) {
-                return f(a);
-            } else {
-                return Stream.never();
-            }
-        }));
-    }
-
-    map<B>(f: (a: A) => B): Cell<B> {
-        return this.values().map(f).hold(f(this.value));
-    }
-
-    mapTo<B>(b: B): Cell<B> {
-        return this.map((_) => b);
-    }
-
-    switchMapC<B>(f: (a: A) => Cell<B>): Cell<B> {
-        return Cell.switchC(this.map(f));
-    }
-
-    // (switchS . map)
-    switchMapS<B>(f: (a: A) => Stream<B>): Stream<B> {
-        return Cell.switchS(this.map(f));
-    }
-
-    where(f: (a: A) => boolean): Cell<A | undefined> {
-        const out = new MutableCell<A | undefined>(
-            f(this.value) ? this.value : undefined,
-        );
-
-        this.listen((a) => {
-            if (f(a)) {
-                out.value = a;
-            }
-        });
-
-        return out;
-    }
-
-    whereSubclass<A2 extends A>(A2_: { new(...args: any[]): A2 }): Cell<A2 | undefined> {
-        return this.where((a) => a instanceof A2_)
-            .map<A2 | undefined>((a) => a as A2);
-    }
 }
 
 
@@ -445,5 +353,22 @@ export class CellLoop<A> extends Cell<A> {
 
     values(): Stream<A> {
         return this._self!;
+    }
+}
+
+export class SourceCell<A> extends Cell<A> {
+    constructor(
+        private readonly _values: Stream<A>,
+        private readonly _getValue: () => A,
+    ) {
+        super();
+    }
+
+    get value(): A {
+        return this._getValue();
+    }
+
+    values(): Stream<A> {
+        return this._values;
     }
 }
