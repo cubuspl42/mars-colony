@@ -271,3 +271,21 @@ export class StreamSink<A> extends SimpleStream<A> {
     unlink(): void {
     }
 }
+
+export class SourceStream<A> extends SimpleStream<A> {
+    private _sub?: StreamSubscription;
+
+    constructor(
+        private readonly _listen: (notify: (a: A) => void) => StreamSubscription,
+    ) {
+        super();
+    }
+
+    link(): void {
+        this._sub = this._listen((a) => this.notify(a));
+    }
+
+    unlink(): void {
+        this._sub?.cancel();
+    }
+}

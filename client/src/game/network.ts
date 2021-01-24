@@ -24,11 +24,11 @@ export class BackendClient {
     static readonly hostname = "//localhost:8080";
 
     async signIn(credentials: Credentials): Promise<SignInError | GameClient> {
-        console.log("signIn.");
         const response = await fetch(`${BackendClient.hostname}/verify-credentials`, {
             method: "POST",
             body: JSON.stringify(credentials),
         });
+
         if (response.status === HttpStatus.OK) {
             return new GameClient(credentials);
         } else if (response.status === HttpStatus.FORBIDDEN) {
@@ -147,10 +147,10 @@ export function readObjectProperty(
         initialState: initialDict[key],
         sUpdates: networkObject.sUpdates
             ?.where((msg) => msg.path[0] === key)
-            ?.map((msg) => (<NetworkMessage>{
+            ?.map((msg) => <NetworkMessage>{
                 path: msg.path.slice(1),
                 data: msg.data,
-            }))?.map((msg) => {
+            })?.map((msg) => {
                 // console.log(`Network object update for key ${key}`);
                 return msg;
             }),

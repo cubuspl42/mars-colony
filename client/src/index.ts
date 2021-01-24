@@ -4,7 +4,7 @@ import { Game, HexCoord } from "@common/game/game";
 import { createBuildingGroup } from "./buildings_group";
 import { createHudElement } from "./hud";
 import { ClientGame } from "./game/game";
-import { SimpleStream, Stream, StreamSink } from "@common/frp/Stream";
+import { SimpleStream, SourceStream, Stream, StreamSink, StreamSubscription } from "@common/frp/Stream";
 import { BackendClient, GameClient, SignInError } from "./game/network";
 import { linkElement } from "./dom";
 
@@ -75,23 +75,29 @@ interface TextInputElement {
     readonly cText: Cell<string>;
 }
 
-// class HtmlEventStream<A> extends SimpleStream<A> {
-//     readonly _listen: () => ;
-//
-//     link(): void {
-//     }
-//
-//     unlink(): void {
-//     }
-// }
-//
-// function createEventStream(element: HTMLElement) {
-//     element.addEventListener()
-// }
+function htmlEventStream<K extends keyof HTMLElementEventMap>(
+    element: HTMLElement,
+    type: K,
+): Stream<HTMLElementEventMap[K]> {
+    return new SourceStream((notify) => {
+        element.addEventListener(type, notify);
+        return <StreamSubscription>{
+            cancel(): void {
+                element.removeEventListener(type, notify);
+            }
+        }
+    })
+}
 
 const createLabeledTextInput = (args: {
     readonly labelTex: string,
 }) => {
+    const input = createElement("input", {
+        init: (style, element) => {
+            element.type = "text";
+        },
+    });
+
     const element = createElement("div", {
         init: (style, element) => {
             style.width = "100%";
@@ -106,15 +112,13 @@ const createLabeledTextInput = (args: {
                     style.marginBottom = `5px`;
                 },
             }),
-            createElement("input", {
-                init: (style, element) => {
-                    element.type = "text";
-                },
-            }),
+            input,
         ],
     });
 
-    const cText = new Const("");
+    // const cText = htmlEventStream()
+
+    const cText = htmlEventStream(input, "input").map(() => input.value).hold("");
 
     return <TextInputElement>{
         element,
@@ -132,11 +136,9 @@ function createLoginView(backendClient: BackendClient): LoginViewElement {
     });
 
     async function signIn(): Promise<SignInError | Game> {
-        console.log("signIn");
-
         const result = await backendClient.signIn({
-            username: "kuba",
-            password: "123456",
+            username: usernameTextInput.cText.value,
+            password: passwordTextInput.cText.value,
         });
 
         if (!(result instanceof GameClient)) {

@@ -72,7 +72,7 @@ function startGameServer(game: Game): void {
         if (credentials.username === "kuba" && credentials.password === "123456") {
             res.writeHead(HttpStatus.OK, resHeaders);
         } else {
-            res.writeHead(HttpStatus.FORBIDDEN);
+            res.writeHead(HttpStatus.FORBIDDEN, resHeaders);
         }
 
         res.end();
