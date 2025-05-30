@@ -115,7 +115,7 @@ function startGameServer(game: Game): void {
         }
     });
 
-    server.listen(8080);
+    server.listen(8081);
 }
 
 startGameServer(new ServerGame());

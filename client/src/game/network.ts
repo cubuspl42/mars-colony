@@ -21,7 +21,7 @@ export enum SignInError {
 }
 
 export class BackendClient {
-    static readonly hostname = "//localhost:8080";
+    static readonly hostname = "//localhost:8081";
 
     async signIn(credentials: Credentials): Promise<SignInError | GameClient> {
         const response = await fetch(`${BackendClient.hostname}/verify-credentials`, {
