@@ -21,16 +21,19 @@ module.exports = {
     resolve: {
         extensions: ['.ts', '.js'],
         plugins: [
-            new TsconfigPathsPlugin({configFile: "./tsconfig.json"}),
+            new TsconfigPathsPlugin({ configFile: "./tsconfig.json" }),
         ],
     },
     output: {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist'),
+        publicPath: '/',  // Set publicPath here
     },
     devServer: {
-        contentBase: __dirname,
+        static: {
+            directory: __dirname, // Use static to serve content
+        },
         port: 3035,
-        publicPath: '/',
+        hot: true,  // Enable hot module replacement
     },
 };

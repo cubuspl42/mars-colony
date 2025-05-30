@@ -10,7 +10,6 @@
     ],
     "noImplicitAny": true,
     "strict": true,
-    "experimentalDecorators": true,
     "downlevelIteration": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": "..",

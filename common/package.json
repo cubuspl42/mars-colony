@@ -2,9 +2,9 @@
   "name": "mars-colony-common",
   "private": true,
   "dependencies": {
-    "lazy-get-decorator": "^2.2.0"
+    "lazy-get-decorator": "^3.0.0"
   },
   "devDependencies": {
-    "typescript": "^4.1.2"
+    "typescript": "^5.8.3"
   }
 }
